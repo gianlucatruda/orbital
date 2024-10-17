@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Pane } from "tweakpane";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 
+const SECONDS_PER_DAY = 86400;
+
 // Stats (FPS)
 const stats = Stats();
 document.body.appendChild(stats.dom);
@@ -284,17 +286,17 @@ const controlPane = pane.addFolder({
   expanded: true
 });
 let simControls = {
-  timeAccel: 1e8,
+  timeAccel: 1.0, // 1 day / sec
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
 };
-controlPane.addBinding(simControls, 'timeAccel', { min: 0, max: 1e9, step: 1e7 });
+controlPane.addBinding(simControls, 'timeAccel', { min: 0, max: 50, step: 1, label: 'Speedup (days/s)' });
 controlPane.addBinding(simControls, 'rotateCam');
 controlPane.addBinding(simControls, 'showOrbitPaths', { label: 'Show Orbit Paths' });
 
 // Log simTime to the controlPane
-controlPane.addBinding(simControls, 'simTime', { readonly: true, label: "simTime (days)" });
+controlPane.addBinding(simControls, 'simTime', { readonly: true, label: "delta t (days)" });
 
 // Orbit controls
 const controls = new OrbitControls(camera, canvas);
@@ -311,7 +313,7 @@ window.addEventListener('resize', () => {
 let clock = new THREE.Clock();
 
 function animate() {
-  simControls.simTime += simControls.timeAccel * (clock.getDelta() / (1000 * 86400)); // Convert milliseconds to days
+  simControls.simTime += simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / 86400); // Convert seconds to days
 
   celestialBodies.forEach(body => {
     const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
