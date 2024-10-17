@@ -49,6 +49,7 @@ const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 // Create the sun
 const sun = new THREE.Mesh(sphereGeometry, materials.sun);
 sun.scale.setScalar(5);
+sun.name = 'Sun';
 scene.add(sun);
 
 // Orbital parameters (simplified for the simulation)
@@ -144,9 +145,12 @@ const planetsData = [
 const degToRad = degrees => (degrees * Math.PI) / 180;
 
 // Function to calculate the position from mean anomaly
-function calculatePositionFromMeanAnomaly(orbitalElements, M_deg) {
-  const { a, e, i, omega, w } = orbitalElements;
-  const M_rad = degToRad(M_deg);
+function calculatePositionFromMeanAnomaly(orbitalElements, time) {
+  const { a, e, i, omega, w, L0, period } = orbitalElements;
+
+  const n = 360 / period; // Mean motion (degrees per day)
+  const M_deg = L0 + n * time; // Mean anomaly
+  const M_rad = degToRad(M_deg % 360);
 
   // Solve Kepler's Equation for Eccentric Anomaly using Newton-Raphson method
   let E = M_rad;
@@ -168,11 +172,26 @@ function calculatePositionFromMeanAnomaly(orbitalElements, M_deg) {
   const y_orb = r * Math.sin(nu);
 
   // Convert to 3D coordinates
-  const x = x_orb * (Math.cos(degToRad(omega)) * Math.cos(degToRad(w)) - Math.sin(degToRad(omega)) * Math.sin(degToRad(w)) * Math.cos(degToRad(i)))
-    - y_orb * (Math.cos(degToRad(omega)) * Math.sin(degToRad(w)) + Math.sin(degToRad(omega)) * Math.cos(degToRad(w)) * Math.cos(degToRad(i)));
-  const y = x_orb * (Math.sin(degToRad(omega)) * Math.cos(degToRad(w)) + Math.cos(degToRad(omega)) * Math.sin(degToRad(w)) * Math.cos(degToRad(i)))
-    + y_orb * (Math.cos(degToRad(omega)) * Math.cos(degToRad(w)) * Math.cos(degToRad(i)) - Math.sin(degToRad(omega)) * Math.sin(degToRad(w)));
-  const z = x_orb * (Math.sin(degToRad(w)) * Math.sin(degToRad(i))) + y_orb * (Math.cos(degToRad(w)) * Math.sin(degToRad(i)));
+  const cosOmega = Math.cos(degToRad(omega));
+  const sinOmega = Math.sin(degToRad(omega));
+  const cosI = Math.cos(degToRad(i));
+  const sinI = Math.sin(degToRad(i));
+  const cosW = Math.cos(degToRad(w));
+  const sinW = Math.sin(degToRad(w));
+
+  const x =
+    x_orb *
+    (cosOmega * cosW - sinOmega * sinW * cosI) -
+    y_orb *
+    (cosOmega * sinW + sinOmega * cosW * cosI);
+  const y =
+    x_orb *
+    (sinOmega * cosW + cosOmega * sinW * cosI) -
+    y_orb *
+    (sinOmega * sinW - cosOmega * cosW * cosI);
+  const z =
+    x_orb * (sinW * sinI) +
+    y_orb * (cosW * sinI);
 
   return new THREE.Vector3(x, z, y); // Note: Swapped y and z for correct orientation
 }
@@ -180,8 +199,10 @@ function calculatePositionFromMeanAnomaly(orbitalElements, M_deg) {
 // Create orbit paths
 function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) {
   const positions = [];
-  for (let M_deg = 0; M_deg < 360; M_deg += 1) {
-    const position = calculatePositionFromMeanAnomaly(orbitalElements, M_deg);
+  const steps = 360;
+  for (let step = 0; step < steps; step++) {
+    const time = (step / steps) * orbitalElements.period;
+    const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
     position.add(parentPosition);
     positions.push(position.x, position.y, position.z);
   }
@@ -191,12 +212,18 @@ function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) 
   let line = new THREE.LineLoop(geometry, material, 100);
   line.computeLineDistances();
   return line;
-
 }
 
 // Create celestial bodies
 const celestialBodies = [];
 const orbitPaths = [];
+
+// Add the sun to celestialBodies
+celestialBodies.push({
+  group: sun,
+  mesh: sun,
+  name: 'Sun',
+});
 
 planetsData.forEach(planetData => {
   const planetMaterial = materials[planetData.texture];
@@ -224,6 +251,7 @@ planetsData.forEach(planetData => {
     orbitalElements: planetData.orbitalElements,
     rotationPeriod: planetData.rotationPeriod,
     moons: [],
+    name: planetData.name,
   };
 
   planetData.moons.forEach(moonData => {
@@ -247,6 +275,7 @@ planetsData.forEach(planetData => {
       orbitalElements: moonData.orbitalElements,
       rotationPeriod: moonData.rotationPeriod,
       parent: planet,
+      name: moonData.name,
     };
 
     // Create orbit path for the moon
@@ -288,15 +317,29 @@ const controlPane = pane.addFolder({
   title: 'Controls',
   expanded: true
 });
+
+// Prepare options for celestial body selection
+const celestialBodiesOptions = {
+  'Sun': 'Sun',
+};
+celestialBodies.forEach(body => {
+  celestialBodiesOptions[body.mesh.name] = body.mesh.name;
+});
+
 let simControls = {
   timeAccel: 1.0, // 1 day / sec
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
+  anchorTo: 'Sun',
+  earthView: false,
 };
+
 controlPane.addBinding(simControls, 'timeAccel', { min: 0, max: 50, step: 1, label: 'Speedup (days/s)' });
 controlPane.addBinding(simControls, 'rotateCam');
 controlPane.addBinding(simControls, 'showOrbitPaths', { label: 'Show Orbit Paths' });
+controlPane.addBinding(simControls, 'anchorTo', { options: celestialBodiesOptions, label: 'Anchor To' });
+// controlPane.addBinding(simControls, 'earthView', { label: 'Earth Outward View' });
 
 // Log simTime to the controlPane
 controlPane.addBinding(simControls, 'simTime', { readonly: true, label: "delta t (days)" });
@@ -319,16 +362,21 @@ function animate() {
   simControls.simTime += simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / 86400); // Convert seconds to days
 
   celestialBodies.forEach(body => {
-    const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
-    if (body.parent) {
-      body.group.position.copy(position);
-    } else {
-      body.group.position.copy(position);
-    }
+    // Ignore the Sun
+    if (body.name != "Sun") {
 
-    if (body.rotationPeriod) {
-      const rotationAngle = (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
-      body.mesh.rotation.y = rotationAngle;
+
+      const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
+      if (body.parent) {
+        body.group.position.copy(position);
+      } else {
+        body.group.position.copy(position);
+      }
+
+      if (body.rotationPeriod) {
+        const rotationAngle = (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
+        body.mesh.rotation.y = rotationAngle;
+      }
     }
   });
 
@@ -336,6 +384,49 @@ function animate() {
   orbitPaths.forEach(path => {
     path.visible = simControls.showOrbitPaths;
   });
+
+  if (simControls.earthView) {
+    const earthBody = celestialBodies.find(body => body.mesh.name === 'Earth');
+    if (earthBody) {
+      // Update Earth's world matrix
+      earthBody.group.updateWorldMatrix(true, true);
+
+      const earthRadius = earthBody.mesh.scale.x;
+      const localPoint = new THREE.Vector3(0, 0, earthRadius);
+
+      // Get Earth's world matrix
+      const earthWorldMatrix = new THREE.Matrix4();
+      earthWorldMatrix.multiplyMatrices(earthBody.group.matrixWorld, earthBody.mesh.matrix);
+
+      // Apply Earth's world matrix to localPoint
+      localPoint.applyMatrix4(earthWorldMatrix);
+
+      camera.position.copy(localPoint);
+
+      // Compute normal vector (direction from Earth's center to camera position)
+      const normalVector = new THREE.Vector3().subVectors(camera.position, earthBody.group.position).normalize();
+
+      camera.up.copy(earthBody.group.up);
+
+      camera.lookAt(camera.position.clone().add(normalVector));
+
+      controls.enabled = true;
+    }
+  } else {
+    controls.enabled = true;
+
+    // Update controls target to the selected body
+    if (simControls.anchorTo) {
+      if (simControls.anchorTo === 'Sun') {
+        controls.target.copy(sun.position);
+      } else {
+        const selectedBody = celestialBodies.find(body => body.mesh.name === simControls.anchorTo);
+        if (selectedBody) {
+          controls.target.copy(selectedBody.group.position);
+        }
+      }
+    }
+  }
 
   controls.autoRotate = simControls.rotateCam;
   controls.update();
