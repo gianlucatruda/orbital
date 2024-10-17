@@ -55,6 +55,8 @@ const planetsData = [
     name: 'Mercury',
     radius: 0.5,
     texture: 'mercury',
+    axialTilt: 0.034,
+    rotationPeriod: 58.646,
     orbitalElements: {
       a: 10, // Semi-major axis
       e: 0.2056, // Eccentricity
@@ -70,6 +72,8 @@ const planetsData = [
     name: 'Venus',
     radius: 0.8,
     texture: 'venus',
+    axialTilt: 177.36,
+    rotationPeriod: -243.025, // Negative for retrograde rotation
     orbitalElements: {
       a: 15,
       e: 0.0067,
@@ -85,6 +89,8 @@ const planetsData = [
     name: 'Earth',
     radius: 1,
     texture: 'earth',
+    axialTilt: 23.44,
+    rotationPeriod: 1.0,
     orbitalElements: {
       a: 20,
       e: 0.0167,
@@ -99,6 +105,8 @@ const planetsData = [
         name: 'Moon',
         radius: 0.3,
         texture: 'moon',
+        axialTilt: 6.68,
+        rotationPeriod: 27.322,
         orbitalElements: {
           a: 3,
           e: 0.0549,
@@ -115,6 +123,8 @@ const planetsData = [
     name: 'Mars',
     radius: 0.7,
     texture: 'mars',
+    axialTilt: 25.19,
+    rotationPeriod: 1.025,
     orbitalElements: {
       a: 25,
       e: 0.0934,
@@ -131,13 +141,10 @@ const planetsData = [
 // Function to convert degrees to radians
 const degToRad = degrees => (degrees * Math.PI) / 180;
 
-// Function to calculate the position of a celestial body in its orbit
-function calculatePosition(orbitalElements, elapsedTime) {
-  const { a, e, i, omega, w, L0, period } = orbitalElements;
-
-  // Mean anomaly
-  const M = ((360 / period) * elapsedTime + L0 - w) % 360;
-  const M_rad = degToRad(M);
+// Function to calculate the position from mean anomaly
+function calculatePositionFromMeanAnomaly(orbitalElements, M_deg) {
+  const { a, e, i, omega, w } = orbitalElements;
+  const M_rad = degToRad(M_deg);
 
   // Solve Kepler's Equation for Eccentric Anomaly using Newton-Raphson method
   let E = M_rad;
@@ -168,34 +175,79 @@ function calculatePosition(orbitalElements, elapsedTime) {
   return new THREE.Vector3(x, z, y); // Note: Swapped y and z for correct orientation
 }
 
-// Create planet meshes
+// Create orbit paths
+function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) {
+  const positions = [];
+  for (let M_deg = 0; M_deg < 360; M_deg += 1) {
+    const position = calculatePositionFromMeanAnomaly(orbitalElements, M_deg);
+    position.add(parentPosition);
+    positions.push(position.x, position.y, position.z);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  const material = new THREE.LineBasicMaterial({ color: 0x888888, opacity: 0.5, transparent: true });
+  return new THREE.LineLoop(geometry, material);
+}
+
+// Create celestial bodies
 const celestialBodies = [];
+const orbitPaths = [];
 
 planetsData.forEach(planetData => {
   const planetMaterial = materials[planetData.texture];
+
+  const planetGroup = new THREE.Object3D();
+  planetGroup.name = planetData.name + '_group';
+  const axialTilt = degToRad(planetData.axialTilt || 0);
+  planetGroup.rotation.x = axialTilt;
+
   const planetMesh = new THREE.Mesh(sphereGeometry, planetMaterial);
   planetMesh.scale.setScalar(planetData.radius);
   planetMesh.name = planetData.name;
-  scene.add(planetMesh);
+
+  planetGroup.add(planetMesh);
+  scene.add(planetGroup);
+
+  // Create orbit path
+  const orbitPath = createOrbitPath(planetData.orbitalElements);
+  orbitPaths.push(orbitPath);
+  scene.add(orbitPath);
 
   const planet = {
+    group: planetGroup,
     mesh: planetMesh,
     orbitalElements: planetData.orbitalElements,
+    rotationPeriod: planetData.rotationPeriod,
     moons: [],
   };
 
   planetData.moons.forEach(moonData => {
     const moonMaterial = materials[moonData.texture];
+
+    const moonGroup = new THREE.Object3D();
+    moonGroup.name = moonData.name + '_group';
+    const moonAxialTilt = degToRad(moonData.axialTilt || 0);
+    moonGroup.rotation.x = moonAxialTilt;
+
     const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
     moonMesh.scale.setScalar(moonData.radius);
     moonMesh.name = moonData.name;
-    scene.add(moonMesh);
+
+    moonGroup.add(moonMesh);
+    planetGroup.add(moonGroup);
 
     const moon = {
+      group: moonGroup,
       mesh: moonMesh,
       orbitalElements: moonData.orbitalElements,
+      rotationPeriod: moonData.rotationPeriod,
       parent: planet,
     };
+
+    // Create orbit path for the moon
+    const moonOrbitPath = createOrbitPath(moonData.orbitalElements);
+    orbitPaths.push(moonOrbitPath);
+    planetGroup.add(moonOrbitPath);
 
     planet.moons.push(moon);
     celestialBodies.push(moon);
@@ -230,14 +282,16 @@ renderer.setPixelRatio(window.devicePixelRatio);
 const controlPane = pane.addFolder({
   title: 'Controls',
   expanded: true
-})
+});
 let simControls = {
   timeAccel: 1e8,
   simTime: 0.0,
   rotateCam: false,
+  showOrbitPaths: true,
 };
 controlPane.addBinding(simControls, 'timeAccel', { min: 0, max: 1e9, step: 1e7 });
 controlPane.addBinding(simControls, 'rotateCam');
+controlPane.addBinding(simControls, 'showOrbitPaths', { label: 'Show Orbit Paths' });
 
 // Log simTime to the controlPane
 controlPane.addBinding(simControls, 'simTime', { readonly: true, label: "simTime (days)" });
@@ -260,22 +314,29 @@ function animate() {
   simControls.simTime += simControls.timeAccel * (clock.getDelta() / (1000 * 86400)); // Convert milliseconds to days
 
   celestialBodies.forEach(body => {
-    const position = calculatePosition(body.orbitalElements, simControls.simTime);
+    const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
     if (body.parent) {
-      // For moons, position relative to the parent planet
-      const parentPosition = body.parent.mesh.position;
-      body.mesh.position.copy(position).add(parentPosition);
+      body.group.position.copy(position);
     } else {
-      // For planets, position relative to the sun
-      body.mesh.position.copy(position);
+      body.group.position.copy(position);
     }
+
+    if (body.rotationPeriod) {
+      const rotationAngle = (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
+      body.mesh.rotation.y = rotationAngle;
+    }
+  });
+
+  // Toggle orbit paths visibility
+  orbitPaths.forEach(path => {
+    path.visible = simControls.showOrbitPaths;
   });
 
   controls.autoRotate = simControls.rotateCam;
   controls.update();
   stats.update();
   renderer.render(scene, camera);
-  window.requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 }
 
 animate();
