@@ -187,8 +187,11 @@ function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) 
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  const material = new THREE.LineBasicMaterial({ color: 0x888888, opacity: 0.5, transparent: true });
-  return new THREE.LineLoop(geometry, material);
+  const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true });
+  let line = new THREE.LineLoop(geometry, material, 100);
+  line.computeLineDistances();
+  return line;
+
 }
 
 // Create celestial bodies
