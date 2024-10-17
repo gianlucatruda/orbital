@@ -3,7 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Pane } from "tweakpane";
 
 // initialize pane
-const pane = new Pane();
+// const pane = new Pane();
 
 // initialize the scene
 const scene = new THREE.Scene();
@@ -27,17 +27,17 @@ marsTexture.colorSpace = THREE.SRGBColorSpace
 const moonTexture = textureLoader.load("/textures/2k_moon.jpg");
 moonTexture.colorSpace = THREE.SRGBColorSpace
 
-const backgroundCubemap = cubeTextureLoader
-  .load([
-    'px.png',
-    'nx.png',
-    'py.png',
-    'ny.png',
-    'pz.png',
-    'nz.png'
-  ]);
-
-scene.background = backgroundCubemap
+// const backgroundCubemap = cubeTextureLoader
+//   .load([
+//     'px.png',
+//     'nx.png',
+//     'py.png',
+//     'ny.png',
+//     'pz.png',
+//     'nz.png'
+//   ]);
+//
+// scene.background = backgroundCubemap
 
 // add materials
 const mercuryMaterial = new THREE.MeshStandardMaterial({
@@ -57,7 +57,7 @@ const moonMaterial = new THREE.MeshStandardMaterial({
 });
 
 // add stuff here
-const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 const sunMaterial = new THREE.MeshBasicMaterial({
   map: sunTexture,
 });
@@ -159,22 +159,22 @@ console.log(planetMeshes)
 // add lights
 const ambientLight = new THREE.AmbientLight(
   0xffffff,
-  0.3
+  0.005
 )
 scene.add(ambientLight)
 
 const pointLight = new THREE.PointLight(
   0xffffff,
-  1000
+  10000
 )
 scene.add(pointLight)
 
 // initialize the camera
 const camera = new THREE.PerspectiveCamera(
-  35,
+  20,
   window.innerWidth / window.innerHeight,
   0.1,
-  400
+  2000
 );
 camera.position.z = 100;
 camera.position.y = 5;
@@ -188,8 +188,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 // add controls
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.maxDistance = 200;
-controls.minDistance = 20;
+controls.maxDistance = 2000;
+controls.minDistance = 2;
 
 // add resize listener
 window.addEventListener("resize", () => {
