@@ -75,7 +75,7 @@ const planetsData = [
     name: 'Venus',
     radius: 0.8,
     texture: 'venus',
-    axialTilt: 177.36,
+    axialTilt: 180 - 177.36,
     rotationPeriod: -243.025, // Negative for retrograde rotation
     orbitalElements: {
       a: 15,
@@ -182,18 +182,13 @@ function calculatePositionFromMeanAnomaly(orbitalElements, time) {
   const x =
     x_orb *
     (cosOmega * cosW - sinOmega * sinW * cosI) -
-    y_orb *
-    (cosOmega * sinW + sinOmega * cosW * cosI);
-  const y =
-    x_orb *
-    (sinOmega * cosW + cosOmega * sinW * cosI) -
-    y_orb *
-    (sinOmega * sinW - cosOmega * cosW * cosI);
+    y_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
+  const y = x_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
+    y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
   const z =
-    x_orb * (sinW * sinI) +
-    y_orb * (cosW * sinI);
+    x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
 
-  return new THREE.Vector3(x, z, y); // Note: Swapped y and z for correct orientation
+  return new THREE.Vector3(y, z, x); // Note: Swapped y and z for correct orientation
 }
 
 // Create orbit paths
