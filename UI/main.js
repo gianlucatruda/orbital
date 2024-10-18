@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Pane } from "tweakpane";
 import Stats from "three/examples/jsm/libs/stats.module.js";
-import init, { greet } from 'orbital_physics';
+import init, { greet } from './orbital_physics/orbital_physics.js';
 
 async function wasmBindTest() {
   await init();
