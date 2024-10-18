@@ -332,14 +332,12 @@ let simControls = {
   rotateCam: false,
   showOrbitPaths: true,
   anchorTo: 'Sun',
-  earthView: false,
 };
 
 controlPane.addBinding(simControls, 'timeAccel', { min: 0, max: 50, step: 1, label: 'Speedup (days/s)' });
 controlPane.addBinding(simControls, 'rotateCam');
 controlPane.addBinding(simControls, 'showOrbitPaths', { label: 'Show Orbit Paths' });
 controlPane.addBinding(simControls, 'anchorTo', { options: celestialBodiesOptions, label: 'Anchor To' });
-// controlPane.addBinding(simControls, 'earthView', { label: 'Earth Outward View' });
 
 // Log simTime to the controlPane
 controlPane.addBinding(simControls, 'simTime', { readonly: true, label: "delta t (days)" });
@@ -363,16 +361,16 @@ function animate() {
 
   celestialBodies.forEach(body => {
     // Ignore the Sun
+    if (body.name == "Sun") {
+      body.mesh.rotation.y = (simControls.simTime / 2) * Math.PI * 2;
+    }
     if (body.name != "Sun") {
-
-
       const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
       if (body.parent) {
         body.group.position.copy(position);
       } else {
         body.group.position.copy(position);
       }
-
       if (body.rotationPeriod) {
         const rotationAngle = (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
         body.mesh.rotation.y = rotationAngle;
@@ -385,45 +383,14 @@ function animate() {
     path.visible = simControls.showOrbitPaths;
   });
 
-  if (simControls.earthView) {
-    const earthBody = celestialBodies.find(body => body.mesh.name === 'Earth');
-    if (earthBody) {
-      // Update Earth's world matrix
-      earthBody.group.updateWorldMatrix(true, true);
-
-      const earthRadius = earthBody.mesh.scale.x;
-      const localPoint = new THREE.Vector3(0, 0, earthRadius);
-
-      // Get Earth's world matrix
-      const earthWorldMatrix = new THREE.Matrix4();
-      earthWorldMatrix.multiplyMatrices(earthBody.group.matrixWorld, earthBody.mesh.matrix);
-
-      // Apply Earth's world matrix to localPoint
-      localPoint.applyMatrix4(earthWorldMatrix);
-
-      camera.position.copy(localPoint);
-
-      // Compute normal vector (direction from Earth's center to camera position)
-      const normalVector = new THREE.Vector3().subVectors(camera.position, earthBody.group.position).normalize();
-
-      camera.up.copy(earthBody.group.up);
-
-      camera.lookAt(camera.position.clone().add(normalVector));
-
-      controls.enabled = true;
-    }
-  } else {
-    controls.enabled = true;
-
-    // Update controls target to the selected body
-    if (simControls.anchorTo) {
-      if (simControls.anchorTo === 'Sun') {
-        controls.target.copy(sun.position);
-      } else {
-        const selectedBody = celestialBodies.find(body => body.mesh.name === simControls.anchorTo);
-        if (selectedBody) {
-          controls.target.copy(selectedBody.group.position);
-        }
+  // Update controls target to the selected body
+  if (simControls.anchorTo) {
+    if (simControls.anchorTo === 'Sun') {
+      controls.target.copy(sun.position);
+    } else {
+      const selectedBody = celestialBodies.find(body => body.mesh.name === simControls.anchorTo);
+      if (selectedBody) {
+        controls.target.copy(selectedBody.group.position);
       }
     }
   }
