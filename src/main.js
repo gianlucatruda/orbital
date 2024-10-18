@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Pane } from "tweakpane";
 import Stats from "three/examples/jsm/libs/stats.module.js";
+import init, { greet } from 'orbital_physics';
+
+async function wasmBindTest() {
+  await init();
+  greet()
+}
+wasmBindTest();
 
 const SECONDS_PER_DAY = 86400;
 
