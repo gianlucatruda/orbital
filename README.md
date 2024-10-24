@@ -3,7 +3,8 @@
 Tasks:
 
 - [x] Refactor to modular design: data/parameters, UI, and physics/logic.
-- [ ] Add a spacecraft (burn controls, model, textures)
+- [ ] WIP: Add a spacecraft (burn controls, model, textures)
+- [ ] Incorporate true planet and moon sizes and distances (with object scaling factor in Controls pane)
 - [ ] Add N-body physics to engine to allow orbital maneuvers between spacecraft and celestial bodies
 - [ ] Add a level/puzzle: with a given delta V and time budget, get from body A's orbit to body B's orbit
 - [ ] Fix camera tracking of celestial bodies (particularly for moon)

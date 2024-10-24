@@ -53,7 +53,7 @@ const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 const sun = new THREE.Mesh(sphereGeometry, materials.sun);
 sun.scale.setScalar(5);
 sun.name = "Sun";
-// scene.add(sun);
+scene.add(sun);
 
 // Create orbit paths
 function createOrbitPath(
@@ -88,15 +88,15 @@ function initSpacecraft(parent) {
 
   let data = {
     orbitalElements: {
-      a: 10.5,
+      a: 1.5,
       e: 0.001,
       i: 0.001,
       omega: 0,
       w: 0,
       L0: 0,
-      period: 45.0,
+      period: 0.5,
     },
-    rotationPeriod: 45.0,
+    rotationPeriod: 0.5,
     name: "Ship",
   };
 
@@ -155,7 +155,7 @@ planetsData.forEach((planetData) => {
   // Create orbit path
   const orbitPath = createOrbitPath(planetData.orbitalElements);
   orbitPaths.push(orbitPath);
-  // scene.add(orbitPath);
+  scene.add(orbitPath);
 
   const planet = {
     group: planetGroup,
@@ -204,9 +204,8 @@ planetsData.forEach((planetData) => {
     const shipOrbitPath = createOrbitPath(ship.orbitalElements);
     orbitPaths.push(shipOrbitPath);
     planetGroup.add(shipOrbitPath);
-    planet.moons.push(ship.group);
+    planet.moons.push(ship);
     celestialBodies.push(ship);
-    // scene.add(ship.mesh);
   }
 
   celestialBodies.push(planet);
@@ -231,7 +230,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   2000,
 );
-camera.position.set(0, 60, 0);
+camera.position.set(0, 20, -50);
 
 // Renderer setup
 const canvas = document.querySelector("canvas.threejs");
@@ -253,11 +252,11 @@ celestialBodies.forEach((body) => {
 });
 
 let simControls = {
-  timeAccel: 1.0, // 1 day / sec
+  timeAccel: 0.1, // days / sec
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
-  anchorTo: "Earth",
+  anchorTo: "Sun",
 };
 
 controlPane.addBinding(simControls, "timeAccel", {
