@@ -144,7 +144,7 @@ const camera = new THREE.PerspectiveCamera(
   1 / AU_IN_KM,
   5e9 / AU_IN_KM, // Far plane in AU
 );
-camera.position.set(0, 0, 300000000 / AU_IN_KM); // Position the camera at 300 million km on Z-axis
+camera.position.set(0, 5, -1); // Position the camera at 300 million km on Z-axis
 
 // Renderer setup
 const canvas = document.querySelector("canvas.threejs");
@@ -170,7 +170,7 @@ let simControls = {
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
-  anchorTo: "Earth",
+  anchorTo: "Sun",
 };
 
 const timeAccelControl = controlPane.addBinding(simControls, "timeAccel", {
@@ -263,16 +263,21 @@ function animate() {
     path.visible = simControls.showOrbitPaths;
   });
 
-  // Update controls target to the selected body
+  // Update camera position and target 
   if (simControls.anchorTo) {
     const selectedBody = celestialBodies.find(
       (body) => body.mesh.name === simControls.anchorTo,
     );
     if (selectedBody) {
       const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
+      const eps = selectedBody.data.diameter * 1.25 / AU_IN_KM;
       camControls.target.copy(
         target
       );
+      if (selectedBody.name !== "Sun") {
+        camera.position.set(target.x + eps, target.y + eps, target.z + eps);
+      }
+      console.log(camera.position);
     }
   }
 
