@@ -10,13 +10,14 @@ Tasks:
 - [x] Convert to AU-based render units (and fix scaling systems) to deal with numerical stability
 - [x] Fix camera tracking to follow the object as it moves (only noticeable at realistic scale)
 - [x] Fix bug where only sun is spinning, not any planets.
+- [ ] Fix orbit path drift by updating paths more frequently
 - [ ] Fix scaling of objects so only children of currently tracked celestial body are scaled (with smart dynamic limits)
-- [ ] Fix bug in moon's weird orbital plane (due to Earth-relative axial tilt? or something else?)
+- [ ] Fix bug in moon's weird orbital plane (due to Earth-relative axial tilt? or something else?). Probably need to rewrite the orbit calculations for all satellites to be relative to ecliptic.
 - [ ] Cast shadows from objects upon one another
+- [ ] Add textures (and a proper model) for the spacecraft
 - [ ] Add N-body physics to engine to allow orbital maneuvers between spacecraft and celestial bodies
 - [ ] Add a level/puzzle: with a given delta V and time budget, get from body A's orbit to body B's orbit
-- [ ] Make sun appear brighter and give it some kind of light emitter
-- [ ] Add textures (and a proper model) for the spacecraft
+- [ ] Make sun appear brighter and give it some kind of light flare / glow effects
 
 ---
 
@@ -24,5 +25,4 @@ Future Ideas:
 
 - [ ] Add a WebGL fragment shader to simulate stars as background
 - [ ] Simulate Earth's atmosphere (can I write shaders for that? e.g. Perlin noise?)
-- [ ] Migrate physics to a Rust engine -> WASM bind (see `rustify` branch)
-- [ ] Refactor build and deploy pipelines (Rust part + frontend part)
+- [ ] Migrate physics to a Rust engine -> WASM bind (see `rustify` branch for WIP)
