@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Pane } from "tweakpane";
 import Stats from "three/examples/jsm/libs/stats.module.js";
-import init, { generate_orbit_path, calculate_position_from_mean_anomaly } from './engine/orbital_physics.js';
+import init, { generate_orbit_path, calculate_position_from_mean_anomaly, OrbitalElements } from './engine/orbital_physics';
 
 const SECONDS_PER_DAY = 86400;
 
@@ -64,147 +64,142 @@ async function bindAndRun() {
       texture: 'mercury',
       axialTilt: 0.034,
       rotationPeriod: 58.646,
-      orbitalElements: {
-        a: 10, // Semi-major axis
-        e: 0.2056, // Eccentricity
-        i: 7, // Inclination in degrees
-        omega: 48.331, // Longitude of ascending node
-        w: 29.124, // Argument of periapsis
-        L0: 252.251, // Mean longitude at epoch
-        period: 87.969, // Orbital period in Earth days
-      },
+      orbitalElements: new OrbitalElements(
+        10, // Semi-major axis
+        0.2056, // Eccentricity
+        7, // Inclination in degrees
+        48.331, // Longitude of ascending node
+        29.124, // Argument of periapsis
+        252.251, // Mean longitude at epoch
+        87.969, // Orbital period in Earth days
+      ),
       moons: [],
     },
-    {
-      name: 'Venus',
-      radius: 0.8,
-      texture: 'venus',
-      axialTilt: 180 - 177.36,
-      rotationPeriod: -243.025, // Negative for retrograde rotation
-      orbitalElements: {
-        a: 15,
-        e: 0.0067,
-        i: 3.39,
-        omega: 76.680,
-        w: 54.884,
-        L0: 181.979,
-        period: 224.701,
-      },
-      moons: [],
-    },
-    {
-      name: 'Earth',
-      radius: 1,
-      texture: 'earth',
-      axialTilt: 23.44,
-      rotationPeriod: 1.0,
-      orbitalElements: {
-        a: 20,
-        e: 0.0167,
-        i: 0,
-        omega: 0,
-        w: 102.937,
-        L0: 100.464,
-        period: 365.256,
-      },
-      moons: [
-        {
-          name: 'Moon',
-          radius: 0.3,
-          texture: 'moon',
-          axialTilt: 6.68,
-          rotationPeriod: 27.322,
-          orbitalElements: {
-            a: 3,
-            e: 0.0549,
-            i: 5.145,
-            omega: 0,
-            w: 0,
-            L0: 0,
-            period: 27.322,
-          },
-        },
-      ],
-    },
-    {
-      name: 'Mars',
-      radius: 0.7,
-      texture: 'mars',
-      axialTilt: 25.19,
-      rotationPeriod: 1.025,
-      orbitalElements: {
-        a: 25,
-        e: 0.0934,
-        i: 1.85,
-        omega: 49.558,
-        w: 286.502,
-        L0: 355.453,
-        period: 686.980,
-      },
-      moons: [],
-    },
+    // {
+    //   name: 'Venus',
+    //   radius: 0.8,
+    //   texture: 'venus',
+    //   axialTilt: 180 - 177.36,
+    //   rotationPeriod: -243.025, // Negative for retrograde rotation
+    //   orbitalElements: {
+    //     a: 15,
+    //     e: 0.0067,
+    //     i: 3.39,
+    //     omega: 76.680,
+    //     w: 54.884,
+    //     l0: 181.979,
+    //     period: 224.701,
+    //   },
+    //   moons: [],
+    // },
+    // {
+    //   name: 'Earth',
+    //   radius: 1,
+    //   texture: 'earth',
+    //   axialTilt: 23.44,
+    //   rotationPeriod: 1.0,
+    //   orbitalElements: {
+    //     a: 20,
+    //     e: 0.0167,
+    //     i: 0,
+    //     omega: 0,
+    //     w: 102.937,
+    //     l0: 100.464,
+    //     period: 365.256,
+    //   },
+    //   moons: [
+    //     {
+    //       name: 'Moon',
+    //       radius: 0.3,
+    //       texture: 'moon',
+    //       axialTilt: 6.68,
+    //       rotationPeriod: 27.322,
+    //       orbitalElements: {
+    //         a: 3,
+    //         e: 0.0549,
+    //         i: 5.145,
+    //         omega: 0,
+    //         w: 0,
+    //         l0: 0,
+    //         period: 27.322,
+    //       },
+    //     },
+    //   ],
+    // },
+    // {
+    //   name: 'Mars',
+    //   radius: 0.7,
+    //   texture: 'mars',
+    //   axialTilt: 25.19,
+    //   rotationPeriod: 1.025,
+    //   orbitalElements: {
+    //     a: 25,
+    //     e: 0.0934,
+    //     i: 1.85,
+    //     omega: 49.558,
+    //     w: 286.502,
+    //     l0: 355.453,
+    //     period: 686.980,
+    //   },
+    //   moons: [],
+    // },
   ];
 
   // Function to convert degrees to radians
   const degToRad = degrees => (degrees * Math.PI) / 180;
 
   // Function to calculate the position from mean anomaly
-  function calculatePositionFromMeanAnomaly(orbitalElements, time) {
-    const { a, e, i, omega, w, L0, period } = orbitalElements;
-
-    const n = 360 / period; // Mean motion (degrees per day)
-    const M_deg = L0 + n * time; // Mean anomaly
-    const M_rad = degToRad(M_deg % 360);
-
-    // Solve Kepler's Equation for Eccentric Anomaly using Newton-Raphson method
-    let E = M_rad;
-    for (let j = 0; j < 5; j++) {
-      E = E - (E - e * Math.sin(E) - M_rad) / (1 - e * Math.cos(E));
-    }
-
-    // True anomaly
-    const nu = 2 * Math.atan2(
-      Math.sqrt(1 + e) * Math.sin(E / 2),
-      Math.sqrt(1 - e) * Math.cos(E / 2),
-    );
-
-    // Distance from the central body
-    const r = a * (1 - e * Math.cos(E));
-
-    // Heliocentric coordinates in the orbital plane
-    const x_orb = r * Math.cos(nu);
-    const y_orb = r * Math.sin(nu);
-
-    // Convert to 3D coordinates
-    const cosOmega = Math.cos(degToRad(omega));
-    const sinOmega = Math.sin(degToRad(omega));
-    const cosI = Math.cos(degToRad(i));
-    const sinI = Math.sin(degToRad(i));
-    const cosW = Math.cos(degToRad(w));
-    const sinW = Math.sin(degToRad(w));
-
-    const x =
-      x_orb *
-      (cosOmega * cosW - sinOmega * sinW * cosI) -
-      y_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
-    const y = x_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
-      y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
-    const z =
-      x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
-
-    return new THREE.Vector3(y, z, x); // Note: Swapped y and z for correct orientation
-  }
+  // function calculatePositionFromMeanAnomaly(orbitalElements, time) {
+  //   const { a, e, i, omega, w, L0, period } = orbitalElements;
+  //
+  //   const n = 360 / period; // Mean motion (degrees per day)
+  //   const M_deg = L0 + n * time; // Mean anomaly
+  //   const M_rad = degToRad(M_deg % 360);
+  //
+  //   // Solve Kepler's Equation for Eccentric Anomaly using Newton-Raphson method
+  //   let E = M_rad;
+  //   for (let j = 0; j < 5; j++) {
+  //     E = E - (E - e * Math.sin(E) - M_rad) / (1 - e * Math.cos(E));
+  //   }
+  //
+  //   // True anomaly
+  //   const nu = 2 * Math.atan2(
+  //     Math.sqrt(1 + e) * Math.sin(E / 2),
+  //     Math.sqrt(1 - e) * Math.cos(E / 2),
+  //   );
+  //
+  //   // Distance from the central body
+  //   const r = a * (1 - e * Math.cos(E));
+  //
+  //   // Heliocentric coordinates in the orbital plane
+  //   const x_orb = r * Math.cos(nu);
+  //   const y_orb = r * Math.sin(nu);
+  //
+  //   // Convert to 3D coordinates
+  //   const cosOmega = Math.cos(degToRad(omega));
+  //   const sinOmega = Math.sin(degToRad(omega));
+  //   const cosI = Math.cos(degToRad(i));
+  //   const sinI = Math.sin(degToRad(i));
+  //   const cosW = Math.cos(degToRad(w));
+  //   const sinW = Math.sin(degToRad(w));
+  //
+  //   const x =
+  //     x_orb *
+  //     (cosOmega * cosW - sinOmega * sinW * cosI) -
+  //     y_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
+  //   const y = x_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
+  //     y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
+  //   const z =
+  //     x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
+  //
+  //   return new THREE.Vector3(y, z, x); // Note: Swapped y and z for correct orientation
+  // }
 
   // Create orbit paths
   function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) {
-    const positions = [];
     const steps = 360;
-    for (let step = 0; step < steps; step++) {
-      const time = (step / steps) * orbitalElements.period;
-      const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
-      position.add(parentPosition);
-      positions.push(position.x, position.y, position.z);
-    }
+    const positions = generate_orbit_path(orbitalElements, steps);
+
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true });
@@ -364,7 +359,7 @@ async function bindAndRun() {
         body.mesh.rotation.y = (simControls.simTime / 2) * Math.PI * 2;
       }
       if (body.name != "Sun") {
-        const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
+        const position = calculate_position_from_mean_anomaly(body.orbitalElements, simControls.simTime);
         if (body.parent) {
           body.group.position.copy(position);
         } else {
