@@ -7,6 +7,7 @@ import { degToRad } from "three/src/math/MathUtils";
 import { planetsData } from "./data";
 
 const SECONDS_PER_DAY = 86400;
+const AU_IN_KM = 149597871;
 
 // Stats (FPS)
 const stats = Stats();
@@ -60,7 +61,7 @@ function createOrbitPath(
     const time = (step / steps) * orbitalElements.period;
     const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
     position.add(parentPosition);
-    positions.push(position.x, position.y, position.z);
+    positions.push(position.x / AU_IN_KM, position.y / AU_IN_KM, position.z / AU_IN_KM);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
@@ -92,7 +93,7 @@ function addCelestialBody(parent, bodyData) {
   bodyGroup.rotation.x = axialTilt;
 
   const bodyMesh = new THREE.Mesh(sphereGeometry, bodyMaterial);
-  bodyMesh.scale.setScalar(bodyData.diameter / 2); // Radius in km
+  bodyMesh.scale.setScalar((bodyData.diameter / 2) / AU_IN_KM); // Radius in AU
   bodyMesh.name = bodyData.name;
 
   bodyGroup.add(bodyMesh);
@@ -116,7 +117,6 @@ function addCelestialBody(parent, bodyData) {
   };
 
   bodyData.satellites.forEach((satelliteData) => {
-
     const child = addCelestialBody(celestialBody, satelliteData);
   });
 
@@ -141,10 +141,10 @@ scene.add(pointLight);
 const camera = new THREE.PerspectiveCamera(
   50,
   window.innerWidth / window.innerHeight,
-  1,
-  5e9, // Far plane (in km)
+  1 / AU_IN_KM,
+  5e9 / AU_IN_KM, // Far plane in AU
 );
-camera.position.set(0, 0, 300000000); // Position the camera at 300 million km on Z-axis
+camera.position.set(0, 0, 300000000 / AU_IN_KM); // Position the camera at 300 million km on Z-axis
 
 // Renderer setup
 const canvas = document.querySelector("canvas.threejs");
@@ -158,14 +158,14 @@ const controlPane = pane.addFolder({
 });
 
 // Prepare options for celestial body selection
-const celestialBodiesOptions = {
-};
+const celestialBodiesOptions = {};
 celestialBodies.forEach((body) => {
   celestialBodiesOptions[body.mesh.name] = body.mesh.name;
 });
 
 let simControls = {
   timeAccel: 0.1, // days / sec
+  realtime: false,
   planetScale: 1,
   simTime: 0.0,
   rotateCam: false,
@@ -173,12 +173,12 @@ let simControls = {
   anchorTo: "Earth",
 };
 
-controlPane.addBinding(simControls, "timeAccel", {
+const timeAccelControl = controlPane.addBinding(simControls, "timeAccel", {
   min: 0.0,
-  max: 30.0,
-  step: 0.1,
   label: "Speedup (days/s)",
+  format: (v) => v.toFixed(6),
 });
+controlPane.addBinding(simControls, "realtime", { label: "Realtime" });
 controlPane.addBinding(simControls, "planetScale", {
   min: 1,
   max: 1000,
@@ -196,13 +196,14 @@ controlPane.addBinding(simControls, "anchorTo", {
 controlPane.addBinding(simControls, "simTime", {
   readonly: true,
   label: "delta t (days)",
+  format: (v) => v.toFixed(5),
 });
 
 // Orbit controls
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.maxDistance = 1e10; // in km
-controls.minDistance = 0.1; // in km
+const camControls = new OrbitControls(camera, canvas);
+camControls.enableDamping = true;
+camControls.maxDistance = 1e10 / AU_IN_KM; // in AU
+camControls.minDistance = 0.1 / AU_IN_KM; // in AU
 
 // Handle window resize
 window.addEventListener("resize", () => {
@@ -214,17 +215,21 @@ window.addEventListener("resize", () => {
 let clock = new THREE.Clock();
 
 function animate() {
-  simControls.simTime +=
-    simControls.timeAccel *
-    SECONDS_PER_DAY *
-    (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
+  if (simControls.realtime) {
+    simControls.simTime += (clock.getDelta() / SECONDS_PER_DAY);
+    // Temporarily disable time acceleration controls
+    timeAccelControl.disabled = true;
+    timeAccelControl.refresh();
+
+  } else {
+    timeAccelControl.disabled = false;
+    simControls.simTime += simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
+  }
 
   celestialBodies.forEach((body) => {
-
     // Scale the planets
     if (body.name !== "Sun") {
-      body.data.diameter
-      body.mesh.scale.setScalar(simControls.planetScale * body.data.diameter / 2);
+      body.mesh.scale.setScalar((simControls.planetScale * body.data.diameter / 2) / AU_IN_KM);
     }
 
     // Apply orbits to all but sun 
@@ -236,6 +241,7 @@ function animate() {
         body.data.orbitalElements,
         simControls.simTime,
       );
+      position.divideScalar(AU_IN_KM); // Convert position to AU
       if (body.parent) {
         // For satellites, add the parent's position
         const parentPosition = body.parent.group.position;
@@ -263,14 +269,15 @@ function animate() {
       (body) => body.mesh.name === simControls.anchorTo,
     );
     if (selectedBody) {
-      controls.target.copy(
-        selectedBody.group.getWorldPosition(new THREE.Vector3()),
+      const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
+      camControls.target.copy(
+        target
       );
     }
   }
 
-  controls.autoRotate = simControls.rotateCam;
-  controls.update();
+  camControls.autoRotate = simControls.rotateCam;
+  camControls.update();
   stats.update();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
