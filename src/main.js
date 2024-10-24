@@ -65,7 +65,7 @@ function createOrbitPath(
   parentPosition = new THREE.Vector3(),
 ) {
   const positions = [];
-  const steps = 360;
+  const steps = 36000;
   for (let step = 0; step <= steps; step++) {
     const time = (step / steps) * orbitalElements.period;
     const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
