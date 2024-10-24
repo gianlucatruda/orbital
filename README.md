@@ -3,13 +3,15 @@
 Tasks:
 
 - [x] Refactor to modular design: data/parameters, UI, and physics/logic.
-- [-] Add a spacecraft (burn controls, model, textures)
+- [x] Add a spacecraft 
+- [x] Fix camera tracking of celestial bodies (particularly for moon)
+- [x] Fix UI scaling on small screens (especially mobile devices)
 - [ ] Incorporate true planet and moon sizes and distances (with object scaling factor in Controls pane)
+- [ ] Fix bug in moon's weird orbital plane (due to Earth-relative axial tilt? or something else?)
 - [ ] Add N-body physics to engine to allow orbital maneuvers between spacecraft and celestial bodies
 - [ ] Add a level/puzzle: with a given delta V and time budget, get from body A's orbit to body B's orbit
-- [x] Fix camera tracking of celestial bodies (particularly for moon)
-- [ ] Fix moon's weird orbital plane (due to Earth-relative axial tilt?)
-- [?] Fix UI scaling on small screens (especially mobile devices)
+- [ ] Make sun appear brighter and give it some kind of light emitter
+- [ ] Add textures (and a proper model) for the spacecraft
 
 ---
 

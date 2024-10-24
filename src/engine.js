@@ -6,8 +6,8 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
   const { a, e, i, omega, w, L0, period } = orbitalElements;
 
   const n = 360 / period; // Mean motion (degrees per day)
-  const M_deg = L0 + n * time; // Mean anomaly
-  const M_rad = degToRad(M_deg % 360);
+  const M_deg = (L0 + n * time) % 360; // Mean anomaly in degrees
+  const M_rad = degToRad(M_deg);
 
   // Solve Kepler's Equation for Eccentric Anomaly using Newton-Raphson method
   let E = M_rad;
@@ -23,7 +23,7 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
       Math.sqrt(1 - e) * Math.cos(E / 2),
     );
 
-  // Distance from the central body
+  // Distance from the central body (in km)
   const r = a * (1 - e * Math.cos(E));
 
   // Heliocentric coordinates in the orbital plane
@@ -38,6 +38,7 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
   const cosW = Math.cos(degToRad(w));
   const sinW = Math.sin(degToRad(w));
 
+  // Transformation from orbital plane to ecliptic coordinates
   const x =
     x_orb * (cosOmega * cosW - sinOmega * sinW * cosI) -
     y_orb * (cosOmega * sinW + sinOmega * cosW * cosI);

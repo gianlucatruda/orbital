@@ -49,12 +49,6 @@ const materials = {
 // Sphere geometry
 const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 
-// Create the sun
-const sun = new THREE.Mesh(sphereGeometry, materials.sun);
-sun.scale.setScalar(5);
-sun.name = "Sun";
-scene.add(sun);
-
 // Create orbit paths
 function createOrbitPath(
   orbitalElements,
@@ -62,7 +56,7 @@ function createOrbitPath(
 ) {
   const positions = [];
   const steps = 360;
-  for (let step = 0; step < steps; step++) {
+  for (let step = 0; step <= steps; step++) {
     const time = (step / steps) * orbitalElements.period;
     const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
     position.add(parentPosition);
@@ -83,144 +77,92 @@ function createOrbitPath(
   return line;
 }
 
-// Spacecraft
-function initSpacecraft(parent) {
-
-  let data = {
-    orbitalElements: {
-      a: 1.5,
-      e: 0.001,
-      i: 0.001,
-      omega: 0,
-      w: 0,
-      L0: 0,
-      period: 0.5,
-    },
-    rotationPeriod: 0.5,
-    name: "Ship",
-  };
-
-  const geometry = new THREE.ConeGeometry(0.5, 2, 32);
-  const material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.scale.setScalar(0.25);
-  mesh.rotateZ(degToRad(-90.0));
-  mesh.name = data.name;
-
-  const group = new THREE.Group();
-  group.name = data.name + "_group";
-  // group.rotation.x = degToRad(90.0);
-
-  group.add(mesh);
-  parent.group.add(group);
-
-  const ship = {
-    group: group,
-    mesh: mesh,
-    orbitalElements: data.orbitalElements,
-    rotationPeriod: data.rotationPeriod,
-    parent: parent,
-    name: data.name,
-  };
-
-  return ship;
-}
-
 // Create celestial bodies
 const celestialBodies = [];
 const orbitPaths = [];
 
-// Add the sun to celestialBodies
-celestialBodies.push({
-  group: sun,
-  mesh: sun,
-  name: "Sun",
-});
-
 planetsData.forEach((planetData) => {
-  const planetMaterial = materials[planetData.texture];
+  const planetMaterial =
+    materials[planetData.name.toLowerCase()] ||
+    new THREE.MeshStandardMaterial({ color: 0x808080 });
 
   const planetGroup = new THREE.Object3D();
   planetGroup.name = planetData.name + "_group";
-  const axialTilt = degToRad(planetData.axialTilt || 0);
+  const axialTilt = degToRad(planetData.obliquityToOrbit || 0);
   planetGroup.rotation.x = axialTilt;
 
   const planetMesh = new THREE.Mesh(sphereGeometry, planetMaterial);
-  planetMesh.scale.setScalar(planetData.radius);
+  planetMesh.scale.setScalar(planetData.diameter / 2); // Radius in km
   planetMesh.name = planetData.name;
 
   planetGroup.add(planetMesh);
   scene.add(planetGroup);
 
   // Create orbit path
-  const orbitPath = createOrbitPath(planetData.orbitalElements);
-  orbitPaths.push(orbitPath);
-  scene.add(orbitPath);
+  if (planetData.orbitalElements) {
+    const orbitPath = createOrbitPath(planetData.orbitalElements);
+    orbitPaths.push(orbitPath);
+    scene.add(orbitPath);
+  } else {
+    console.log("No orbital elements for " + planetData.name);
+  }
 
   const planet = {
+    name: planetData.name,
     group: planetGroup,
     mesh: planetMesh,
-    orbitalElements: planetData.orbitalElements,
-    rotationPeriod: planetData.rotationPeriod,
-    moons: [],
-    name: planetData.name,
+    data: planetData,
+    children: [],
   };
 
-  planetData.moons.forEach((moonData) => {
-    const moonMaterial = materials[moonData.texture];
+  planetData.satellites.forEach((satelliteData) => {
+    const satelliteMaterial =
+      materials[satelliteData.name.toLowerCase()] ||
+      new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
 
-    const moonGroup = new THREE.Object3D();
-    moonGroup.name = moonData.name + "_group";
-    const moonAxialTilt = degToRad(moonData.axialTilt || 0);
-    moonGroup.rotation.x = moonAxialTilt;
+    const satelliteGroup = new THREE.Object3D();
+    satelliteGroup.name = satelliteData.name + "_group";
+    const satelliteAxialTilt = degToRad(satelliteData.obliquityToOrbit || 0);
+    satelliteGroup.rotation.x = satelliteAxialTilt;
 
-    const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
-    moonMesh.scale.setScalar(moonData.radius);
-    moonMesh.name = moonData.name;
+    const satelliteMesh = new THREE.Mesh(sphereGeometry, satelliteMaterial);
+    satelliteMesh.scale.setScalar(satelliteData.diameter / 2); // Radius in km
+    satelliteMesh.name = satelliteData.name;
 
-    moonGroup.add(moonMesh);
-    planetGroup.add(moonGroup);
+    satelliteGroup.add(satelliteMesh);
+    planetGroup.add(satelliteGroup);
 
-    const moon = {
-      group: moonGroup,
-      mesh: moonMesh,
-      orbitalElements: moonData.orbitalElements,
-      rotationPeriod: moonData.rotationPeriod,
+    const satellite = {
+      name: satelliteData.name,
+      group: satelliteGroup,
+      mesh: satelliteMesh,
+      data: satelliteData,
       parent: planet,
-      name: moonData.name,
     };
 
-    // Create orbit path for the moon
-    const moonOrbitPath = createOrbitPath(moonData.orbitalElements);
-    orbitPaths.push(moonOrbitPath);
-    planetGroup.add(moonOrbitPath);
+    // Create orbit path for the satellite
+    const satelliteOrbitPath = createOrbitPath(
+      satelliteData.orbitalElements,
+    );
+    orbitPaths.push(satelliteOrbitPath);
+    planetGroup.add(satelliteOrbitPath);
 
-    planet.moons.push(moon);
-    celestialBodies.push(moon);
+    planet.children.push(satellite);
+    celestialBodies.push(satellite);
   });
-
-  if (planet.name == "Earth") {
-    const ship = initSpacecraft(planet);
-    const shipOrbitPath = createOrbitPath(ship.orbitalElements);
-    orbitPaths.push(shipOrbitPath);
-    planetGroup.add(shipOrbitPath);
-    planet.moons.push(ship);
-    celestialBodies.push(ship);
-  }
 
   celestialBodies.push(planet);
 });
 
-// let earth = celestialBodies.find((body) => body.name == "Earth");
-// let luna = celestialBodies.find((body) => body.name == "Moon");
-// console.log(earth);
+console.log(celestialBodies);
 
 // Ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
 scene.add(ambientLight);
 
 // Point light (sunlight)
-const pointLight = new THREE.PointLight(0xffffff, 2000, 0, 2);
+const pointLight = new THREE.PointLight(0xffffff, 10, 0, 0.00001);
+pointLight.position.set(0, 0, 0);
 scene.add(pointLight);
 
 // Camera setup
@@ -228,9 +170,9 @@ const camera = new THREE.PerspectiveCamera(
   50,
   window.innerWidth / window.innerHeight,
   0.1,
-  2000,
+  500000000, // Far plane at 500 million km
 );
-camera.position.set(0, 20, -50);
+camera.position.set(0, 0, 300000000); // Position the camera at 300 million km on Z-axis
 
 // Renderer setup
 const canvas = document.querySelector("canvas.threejs");
@@ -253,10 +195,11 @@ celestialBodies.forEach((body) => {
 
 let simControls = {
   timeAccel: 0.1, // days / sec
+  planetScale: 500,
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
-  anchorTo: "Sun",
+  anchorTo: "Earth",
 };
 
 controlPane.addBinding(simControls, "timeAccel", {
@@ -264,6 +207,12 @@ controlPane.addBinding(simControls, "timeAccel", {
   max: 30.0,
   step: 0.1,
   label: "Speedup (days/s)",
+});
+controlPane.addBinding(simControls, "planetScale", {
+  min: 1,
+  max: 1000,
+  step: 1,
+  label: "Planet scaling",
 });
 controlPane.addBinding(simControls, "rotateCam");
 controlPane.addBinding(simControls, "showOrbitPaths", {
@@ -281,7 +230,8 @@ controlPane.addBinding(simControls, "simTime", {
 // Orbit controls
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.maxDistance = 500;
+controls.maxDistance = 1e10; // in km
+controls.minDistance = 0.1; // in km
 
 // Handle window resize
 window.addEventListener("resize", () => {
@@ -294,26 +244,38 @@ let clock = new THREE.Clock();
 
 function animate() {
   simControls.simTime +=
-    simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / 86400); // Convert seconds to days
+    simControls.timeAccel *
+    SECONDS_PER_DAY *
+    (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
 
   celestialBodies.forEach((body) => {
-    // Ignore the Sun
-    if (body.name == "Sun") {
-      body.mesh.rotation.y = (simControls.simTime / 2) * Math.PI * 2;
+
+    // Scale the planets
+    if (body.name !== "Sun") {
+      body.data.diameter
+      body.mesh.scale.setScalar(simControls.planetScale * body.data.diameter / 2);
     }
-    if (body.name != "Sun") {
+
+    // Apply orbits to all but sun 
+    if (body.name === "Sun") {
+      body.mesh.rotation.y =
+        ((simControls.simTime / 25.38) * Math.PI * 2) % (Math.PI * 2); // Sun's rotation period in days
+    } else {
       const position = calculatePositionFromMeanAnomaly(
-        body.orbitalElements,
+        body.data.orbitalElements,
         simControls.simTime,
       );
       if (body.parent) {
-        body.group.position.copy(position);
+        // For satellites, add the parent's position
+        const parentPosition = body.parent.group.position;
+        body.group.position.copy(position.clone().add(parentPosition));
       } else {
         body.group.position.copy(position);
       }
       if (body.rotationPeriod) {
         const rotationAngle =
-          (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
+          ((simControls.simTime / body.rotationPeriod) * Math.PI * 2) %
+          (Math.PI * 2);
         body.mesh.rotation.y = rotationAngle;
       }
     }
@@ -330,7 +292,9 @@ function animate() {
       (body) => body.mesh.name === simControls.anchorTo,
     );
     if (selectedBody) {
-      controls.target.copy(selectedBody.group.getWorldPosition(new THREE.Vector3()));
+      controls.target.copy(
+        selectedBody.group.getWorldPosition(new THREE.Vector3()),
+      );
     }
   }
 
