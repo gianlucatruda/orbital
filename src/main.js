@@ -53,7 +53,7 @@ const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 const sun = new THREE.Mesh(sphereGeometry, materials.sun);
 sun.scale.setScalar(5);
 sun.name = "Sun";
-scene.add(sun);
+// scene.add(sun);
 
 // Create orbit paths
 function createOrbitPath(
@@ -81,6 +81,49 @@ function createOrbitPath(
   let line = new THREE.LineLoop(geometry, material, 100);
   line.computeLineDistances();
   return line;
+}
+
+// Spacecraft
+function initSpacecraft(parent) {
+
+  let data = {
+    orbitalElements: {
+      a: 10.5,
+      e: 0.001,
+      i: 0.001,
+      omega: 0,
+      w: 0,
+      L0: 0,
+      period: 45.0,
+    },
+    rotationPeriod: 45.0,
+    name: "Ship",
+  };
+
+  const geometry = new THREE.ConeGeometry(0.5, 2, 32);
+  const material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.setScalar(0.25);
+  mesh.rotateZ(degToRad(-90.0));
+  mesh.name = data.name;
+
+  const group = new THREE.Group();
+  group.name = data.name + "_group";
+  // group.rotation.x = degToRad(90.0);
+
+  group.add(mesh);
+  parent.group.add(group);
+
+  const ship = {
+    group: group,
+    mesh: mesh,
+    orbitalElements: data.orbitalElements,
+    rotationPeriod: data.rotationPeriod,
+    parent: parent,
+    name: data.name,
+  };
+
+  return ship;
 }
 
 // Create celestial bodies
@@ -112,7 +155,7 @@ planetsData.forEach((planetData) => {
   // Create orbit path
   const orbitPath = createOrbitPath(planetData.orbitalElements);
   orbitPaths.push(orbitPath);
-  scene.add(orbitPath);
+  // scene.add(orbitPath);
 
   const planet = {
     group: planetGroup,
@@ -156,8 +199,22 @@ planetsData.forEach((planetData) => {
     celestialBodies.push(moon);
   });
 
+  if (planet.name == "Earth") {
+    const ship = initSpacecraft(planet);
+    const shipOrbitPath = createOrbitPath(ship.orbitalElements);
+    orbitPaths.push(shipOrbitPath);
+    planetGroup.add(shipOrbitPath);
+    planet.moons.push(ship.group);
+    celestialBodies.push(ship);
+    // scene.add(ship.mesh);
+  }
+
   celestialBodies.push(planet);
 });
+
+// let earth = celestialBodies.find((body) => body.name == "Earth");
+// let luna = celestialBodies.find((body) => body.name == "Moon");
+// console.log(earth);
 
 // Ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
@@ -200,7 +257,7 @@ let simControls = {
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
-  anchorTo: "Sun",
+  anchorTo: "Earth",
 };
 
 controlPane.addBinding(simControls, "timeAccel", {
