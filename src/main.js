@@ -77,84 +77,56 @@ function createOrbitPath(
   return line;
 }
 
-// Create celestial bodies
+// Recursively create and add celestial bodies 
 const celestialBodies = [];
 const orbitPaths = [];
 
-planetsData.forEach((planetData) => {
-  const planetMaterial =
-    materials[planetData.name.toLowerCase()] ||
+function addCelestialBody(parent, bodyData) {
+  const bodyMaterial =
+    materials[bodyData.name.toLowerCase()] ||
     new THREE.MeshStandardMaterial({ color: 0x808080 });
 
-  const planetGroup = new THREE.Object3D();
-  planetGroup.name = planetData.name + "_group";
-  const axialTilt = degToRad(planetData.obliquityToOrbit || 0);
-  planetGroup.rotation.x = axialTilt;
+  const bodyGroup = new THREE.Object3D();
+  bodyGroup.name = bodyData.name + "_group";
+  const axialTilt = degToRad(bodyData.obliquityToOrbit || 0);
+  bodyGroup.rotation.x = axialTilt;
 
-  const planetMesh = new THREE.Mesh(sphereGeometry, planetMaterial);
-  planetMesh.scale.setScalar(planetData.diameter / 2); // Radius in km
-  planetMesh.name = planetData.name;
+  const bodyMesh = new THREE.Mesh(sphereGeometry, bodyMaterial);
+  bodyMesh.scale.setScalar(bodyData.diameter / 2); // Radius in km
+  bodyMesh.name = bodyData.name;
 
-  planetGroup.add(planetMesh);
-  scene.add(planetGroup);
+  bodyGroup.add(bodyMesh);
+  scene.add(bodyGroup);
 
   // Create orbit path
-  if (planetData.orbitalElements) {
-    const orbitPath = createOrbitPath(planetData.orbitalElements);
+  if (bodyData.orbitalElements) {
+    const orbitPath = createOrbitPath(bodyData.orbitalElements);
     orbitPaths.push(orbitPath);
     scene.add(orbitPath);
   } else {
-    console.log("No orbital elements for " + planetData.name);
+    console.log("No orbital elements for " + bodyData.name);
   }
 
-  const planet = {
-    name: planetData.name,
-    group: planetGroup,
-    mesh: planetMesh,
-    data: planetData,
-    children: [],
+  const celestialBody = {
+    name: bodyData.name,
+    group: bodyGroup,
+    mesh: bodyMesh,
+    data: bodyData,
+    parent: parent,
   };
 
-  planetData.satellites.forEach((satelliteData) => {
-    const satelliteMaterial =
-      materials[satelliteData.name.toLowerCase()] ||
-      new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+  bodyData.satellites.forEach((satelliteData) => {
 
-    const satelliteGroup = new THREE.Object3D();
-    satelliteGroup.name = satelliteData.name + "_group";
-    const satelliteAxialTilt = degToRad(satelliteData.obliquityToOrbit || 0);
-    satelliteGroup.rotation.x = satelliteAxialTilt;
-
-    const satelliteMesh = new THREE.Mesh(sphereGeometry, satelliteMaterial);
-    satelliteMesh.scale.setScalar(satelliteData.diameter / 2); // Radius in km
-    satelliteMesh.name = satelliteData.name;
-
-    satelliteGroup.add(satelliteMesh);
-    planetGroup.add(satelliteGroup);
-
-    const satellite = {
-      name: satelliteData.name,
-      group: satelliteGroup,
-      mesh: satelliteMesh,
-      data: satelliteData,
-      parent: planet,
-    };
-
-    // Create orbit path for the satellite
-    const satelliteOrbitPath = createOrbitPath(
-      satelliteData.orbitalElements,
-    );
-    orbitPaths.push(satelliteOrbitPath);
-    planetGroup.add(satelliteOrbitPath);
-
-    planet.children.push(satellite);
-    celestialBodies.push(satellite);
+    const child = addCelestialBody(celestialBody, satelliteData);
   });
 
-  celestialBodies.push(planet);
-});
+  celestialBodies.push(celestialBody);
+  return celestialBody;
+}
 
-console.log(celestialBodies);
+addCelestialBody(null, planetsData[0]);
+console.log({ celestialBodies });
+console.log({ orbitPaths });
 
 // Ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
@@ -169,8 +141,8 @@ scene.add(pointLight);
 const camera = new THREE.PerspectiveCamera(
   50,
   window.innerWidth / window.innerHeight,
-  0.1,
-  500000000, // Far plane at 500 million km
+  1,
+  5e9, // Far plane (in km)
 );
 camera.position.set(0, 0, 300000000); // Position the camera at 300 million km on Z-axis
 
@@ -187,7 +159,6 @@ const controlPane = pane.addFolder({
 
 // Prepare options for celestial body selection
 const celestialBodiesOptions = {
-  Sun: "Sun",
 };
 celestialBodies.forEach((body) => {
   celestialBodiesOptions[body.mesh.name] = body.mesh.name;
@@ -195,7 +166,7 @@ celestialBodies.forEach((body) => {
 
 let simControls = {
   timeAccel: 0.1, // days / sec
-  planetScale: 500,
+  planetScale: 1,
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
