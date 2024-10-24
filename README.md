@@ -3,7 +3,7 @@
 Tasks:
 
 - [x] Refactor to modular design: data/parameters, UI, and physics/logic.
-- [x] Add a spacecraft 
+- [x] Add a spacecraft
 - [x] Fix camera tracking of celestial bodies (particularly for moon)
 - [x] Fix UI scaling on small screens (especially mobile devices)
 - [x] Incorporate true planet and moon sizes and distances (with object scaling factor in Controls pane)

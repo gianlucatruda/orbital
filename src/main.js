@@ -18,7 +18,6 @@ let simControls = {
   anchorTo: "Earth",
 };
 
-
 // Stats (FPS)
 const stats = Stats();
 document.body.appendChild(stats.dom);
@@ -71,7 +70,11 @@ function createOrbitPath(
     const time = (step / steps) * orbitalElements.period;
     const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
     position.add(parentPosition);
-    positions.push(position.x / AU_IN_KM, position.y / AU_IN_KM, position.z / AU_IN_KM);
+    positions.push(
+      position.x / AU_IN_KM,
+      position.y / AU_IN_KM,
+      position.z / AU_IN_KM,
+    );
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
@@ -88,7 +91,7 @@ function createOrbitPath(
   return line;
 }
 
-// Recursively create and add celestial bodies 
+// Recursively create and add celestial bodies
 const celestialBodies = [];
 const orbitPaths = [];
 
@@ -103,7 +106,7 @@ function addCelestialBody(parent, bodyData) {
   bodyGroup.rotation.x = axialTilt;
 
   const bodyMesh = new THREE.Mesh(sphereGeometry, bodyMaterial);
-  bodyMesh.scale.setScalar((bodyData.diameter / 2) / AU_IN_KM); // Radius in AU
+  bodyMesh.scale.setScalar(bodyData.diameter / 2 / AU_IN_KM); // Radius in AU
   bodyMesh.name = bodyData.name;
 
   bodyGroup.add(bodyMesh);
@@ -216,24 +219,28 @@ let clock = new THREE.Clock();
 
 function animate() {
   if (simControls.realtime) {
-    simControls.simTime += (clock.getDelta() / SECONDS_PER_DAY);
+    simControls.simTime += clock.getDelta() / SECONDS_PER_DAY;
     // Temporarily disable time acceleration controls
     timeAccelControl.disabled = true;
     timeAccelControl.refresh();
-
   } else {
     timeAccelControl.disabled = false;
-    simControls.simTime += simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
+    simControls.simTime +=
+      simControls.timeAccel *
+      SECONDS_PER_DAY *
+      (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
   }
 
   celestialBodies.forEach((body) => {
     // Scale the planets
     if (body.name !== "Sun") {
-      body.mesh.scale.setScalar((simControls.planetScale * body.data.diameter / 2) / AU_IN_KM);
+      body.mesh.scale.setScalar(
+        (simControls.planetScale * body.data.diameter) / 2 / AU_IN_KM,
+      );
     }
     if (body.data.rotationPeriod) {
       const rotationAngle =
-        ((simControls.simTime / body.data.rotationPeriod * 24) * Math.PI * 2) %
+        ((simControls.simTime / body.data.rotationPeriod) * 24 * Math.PI * 2) %
         (Math.PI * 2);
       body.mesh.rotation.y = rotationAngle;
     }
@@ -258,21 +265,18 @@ function animate() {
     path.visible = simControls.showOrbitPaths;
   });
 
-  // Update camera position and target 
+  // Update camera position and target
   if (simControls.anchorTo) {
     const selectedBody = celestialBodies.find(
       (body) => body.mesh.name === simControls.anchorTo,
     );
     if (selectedBody) {
       const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
-      const eps = selectedBody.data.diameter * 1.25 / AU_IN_KM;
-      camControls.target.copy(
-        target
-      );
+      const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
+      camControls.target.copy(target);
       if (selectedBody.name !== "Sun") {
         camera.position.set(target.x + eps, target.y + eps, target.z + eps);
       }
-      console.log(camera.position);
     }
   }
 

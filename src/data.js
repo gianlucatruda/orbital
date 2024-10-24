@@ -22,7 +22,7 @@ export const planetsData = [
         lengthOfDay: 4222.6, // Length of day in hours
         obliquityToOrbit: 0.034, // Axial tilt in degrees
         orbitalElements: {
-          e: 0.205630, // Eccentricity
+          e: 0.20563, // Eccentricity
           a: 57909050, // Semi-major axis in km
           i: 7.0049, // Inclination in degrees
           omega: 48.331, // Longitude of ascending node in degrees
@@ -46,7 +46,7 @@ export const planetsData = [
           e: 0.006772, // Eccentricity
           a: 108208930, // Semi-major axis in km
           i: 3.3946, // Inclination in degrees
-          omega: 76.680, // Longitude of ascending node in degrees
+          omega: 76.68, // Longitude of ascending node in degrees
           w: 54.884, // Argument of periapsis in degrees
           L0: 181.979, // Mean longitude at epoch (J2000.0) in degrees
           period: 224.701, // Orbital period in Earth days
@@ -139,7 +139,5 @@ export const planetsData = [
         satellites: [],
       },
     ],
-  }
+  },
 ];
-
-
