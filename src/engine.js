@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 import { degToRad } from "three/src/math/MathUtils";
 
 // Function to calculate the position from mean anomaly
@@ -16,10 +16,12 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
   }
 
   // True anomaly
-  const nu = 2 * Math.atan2(
-    Math.sqrt(1 + e) * Math.sin(E / 2),
-    Math.sqrt(1 - e) * Math.cos(E / 2),
-  );
+  const nu =
+    2 *
+    Math.atan2(
+      Math.sqrt(1 + e) * Math.sin(E / 2),
+      Math.sqrt(1 - e) * Math.cos(E / 2),
+    );
 
   // Distance from the central body
   const r = a * (1 - e * Math.cos(E));
@@ -37,13 +39,12 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
   const sinW = Math.sin(degToRad(w));
 
   const x =
-    x_orb *
-    (cosOmega * cosW - sinOmega * sinW * cosI) -
+    x_orb * (cosOmega * cosW - sinOmega * sinW * cosI) -
     y_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
-  const y = x_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
+  const y =
+    x_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
     y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
-  const z =
-    x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
+  const z = x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
 
   return new THREE.Vector3(y, z, x); // Note: Swapped y and z for correct orientation
 }

@@ -1,9 +1,10 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Pane } from "tweakpane";
+import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
-import { degToRad } from 'three/src/math/MathUtils';
-import { calculatePositionFromMeanAnomaly } from './engine';
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { Pane } from "tweakpane";
+import { calculatePositionFromMeanAnomaly } from "./engine";
+import { degToRad } from "three/src/math/MathUtils";
+import { planetsData } from "./data";
 
 const SECONDS_PER_DAY = 86400;
 
@@ -22,16 +23,16 @@ const textureLoader = new THREE.TextureLoader();
 
 // Load textures
 const textures = {
-  sun: textureLoader.load('/textures/2k_sun.jpg'),
-  mercury: textureLoader.load('/textures/2k_mercury.jpg'),
-  venus: textureLoader.load('/textures/2k_venus_surface.jpg'),
-  earth: textureLoader.load('/textures/2k_earth_daymap.jpg'),
-  mars: textureLoader.load('/textures/2k_mars.jpg'),
-  moon: textureLoader.load('/textures/2k_moon.jpg'),
+  sun: textureLoader.load("/textures/2k_sun.jpg"),
+  mercury: textureLoader.load("/textures/2k_mercury.jpg"),
+  venus: textureLoader.load("/textures/2k_venus_surface.jpg"),
+  earth: textureLoader.load("/textures/2k_earth_daymap.jpg"),
+  mars: textureLoader.load("/textures/2k_mars.jpg"),
+  moon: textureLoader.load("/textures/2k_moon.jpg"),
 };
 
 // Set texture color space
-Object.values(textures).forEach(texture => {
+Object.values(textures).forEach((texture) => {
   texture.colorSpace = THREE.SRGBColorSpace;
 });
 
@@ -51,15 +52,14 @@ const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 // Create the sun
 const sun = new THREE.Mesh(sphereGeometry, materials.sun);
 sun.scale.setScalar(5);
-sun.name = 'Sun';
+sun.name = "Sun";
 scene.add(sun);
 
-// Orbital parameters (simplified for the simulation)
-import { planetsData } from './data';
-
-
 // Create orbit paths
-function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) {
+function createOrbitPath(
+  orbitalElements,
+  parentPosition = new THREE.Vector3(),
+) {
   const positions = [];
   const steps = 360;
   for (let step = 0; step < steps; step++) {
@@ -69,8 +69,15 @@ function createOrbitPath(orbitalElements, parentPosition = new THREE.Vector3()) 
     positions.push(position.x, position.y, position.z);
   }
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true });
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  const material = new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    opacity: 0.3,
+    transparent: true,
+  });
   let line = new THREE.LineLoop(geometry, material, 100);
   line.computeLineDistances();
   return line;
@@ -84,14 +91,14 @@ const orbitPaths = [];
 celestialBodies.push({
   group: sun,
   mesh: sun,
-  name: 'Sun',
+  name: "Sun",
 });
 
-planetsData.forEach(planetData => {
+planetsData.forEach((planetData) => {
   const planetMaterial = materials[planetData.texture];
 
   const planetGroup = new THREE.Object3D();
-  planetGroup.name = planetData.name + '_group';
+  planetGroup.name = planetData.name + "_group";
   const axialTilt = degToRad(planetData.axialTilt || 0);
   planetGroup.rotation.x = axialTilt;
 
@@ -116,11 +123,11 @@ planetsData.forEach(planetData => {
     name: planetData.name,
   };
 
-  planetData.moons.forEach(moonData => {
+  planetData.moons.forEach((moonData) => {
     const moonMaterial = materials[moonData.texture];
 
     const moonGroup = new THREE.Object3D();
-    moonGroup.name = moonData.name + '_group';
+    moonGroup.name = moonData.name + "_group";
     const moonAxialTilt = degToRad(moonData.axialTilt || 0);
     moonGroup.rotation.x = moonAxialTilt;
 
@@ -170,21 +177,21 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 60, 0);
 
 // Renderer setup
-const canvas = document.querySelector('canvas.threejs');
+const canvas = document.querySelector("canvas.threejs");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 
 const controlPane = pane.addFolder({
-  title: 'Controls',
-  expanded: true
+  title: "Controls",
+  expanded: true,
 });
 
 // Prepare options for celestial body selection
 const celestialBodiesOptions = {
-  'Sun': 'Sun',
+  Sun: "Sun",
 };
-celestialBodies.forEach(body => {
+celestialBodies.forEach((body) => {
   celestialBodiesOptions[body.mesh.name] = body.mesh.name;
 });
 
@@ -193,16 +200,27 @@ let simControls = {
   simTime: 0.0,
   rotateCam: false,
   showOrbitPaths: true,
-  anchorTo: 'Sun',
+  anchorTo: "Sun",
 };
 
-controlPane.addBinding(simControls, 'timeAccel', { min: 0, max: 50, step: 1, label: 'Speedup (days/s)' });
-controlPane.addBinding(simControls, 'rotateCam');
-controlPane.addBinding(simControls, 'showOrbitPaths', { label: 'Show Orbit Paths' });
-controlPane.addBinding(simControls, 'anchorTo', { options: celestialBodiesOptions, label: 'Anchor To' });
-
-// Log simTime to the controlPane
-controlPane.addBinding(simControls, 'simTime', { readonly: true, label: "delta t (days)" });
+controlPane.addBinding(simControls, "timeAccel", {
+  min: 0.0,
+  max: 30.0,
+  step: 0.1,
+  label: "Speedup (days/s)",
+});
+controlPane.addBinding(simControls, "rotateCam");
+controlPane.addBinding(simControls, "showOrbitPaths", {
+  label: "Show Orbit Paths",
+});
+controlPane.addBinding(simControls, "anchorTo", {
+  options: celestialBodiesOptions,
+  label: "Anchor To",
+});
+controlPane.addBinding(simControls, "simTime", {
+  readonly: true,
+  label: "delta t (days)",
+});
 
 // Orbit controls
 const controls = new OrbitControls(camera, canvas);
@@ -210,7 +228,7 @@ controls.enableDamping = true;
 controls.maxDistance = 500;
 
 // Handle window resize
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -219,38 +237,45 @@ window.addEventListener('resize', () => {
 let clock = new THREE.Clock();
 
 function animate() {
-  simControls.simTime += simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / 86400); // Convert seconds to days
+  simControls.simTime +=
+    simControls.timeAccel * SECONDS_PER_DAY * (clock.getDelta() / 86400); // Convert seconds to days
 
-  celestialBodies.forEach(body => {
+  celestialBodies.forEach((body) => {
     // Ignore the Sun
     if (body.name == "Sun") {
       body.mesh.rotation.y = (simControls.simTime / 2) * Math.PI * 2;
     }
     if (body.name != "Sun") {
-      const position = calculatePositionFromMeanAnomaly(body.orbitalElements, simControls.simTime);
+      const position = calculatePositionFromMeanAnomaly(
+        body.orbitalElements,
+        simControls.simTime,
+      );
       if (body.parent) {
         body.group.position.copy(position);
       } else {
         body.group.position.copy(position);
       }
       if (body.rotationPeriod) {
-        const rotationAngle = (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
+        const rotationAngle =
+          (simControls.simTime / body.rotationPeriod) * Math.PI * 2;
         body.mesh.rotation.y = rotationAngle;
       }
     }
   });
 
   // Toggle orbit paths visibility
-  orbitPaths.forEach(path => {
+  orbitPaths.forEach((path) => {
     path.visible = simControls.showOrbitPaths;
   });
 
   // Update controls target to the selected body
   if (simControls.anchorTo) {
-    if (simControls.anchorTo === 'Sun') {
+    if (simControls.anchorTo === "Sun") {
       controls.target.copy(sun.position);
     } else {
-      const selectedBody = celestialBodies.find(body => body.mesh.name === simControls.anchorTo);
+      const selectedBody = celestialBodies.find(
+        (body) => body.mesh.name === simControls.anchorTo,
+      );
       if (selectedBody) {
         controls.target.copy(selectedBody.group.position);
       }

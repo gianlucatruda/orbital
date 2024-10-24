@@ -1,8 +1,8 @@
 export const planetsData = [
   {
-    name: 'Mercury',
+    name: "Mercury",
     radius: 0.5,
-    texture: 'mercury',
+    texture: "mercury",
     axialTilt: 0.034,
     rotationPeriod: 58.646,
     orbitalElements: {
@@ -17,16 +17,16 @@ export const planetsData = [
     moons: [],
   },
   {
-    name: 'Venus',
+    name: "Venus",
     radius: 0.8,
-    texture: 'venus',
+    texture: "venus",
     axialTilt: 180 - 177.36,
     rotationPeriod: -243.025, // Negative for retrograde rotation
     orbitalElements: {
       a: 15,
       e: 0.0067,
       i: 3.39,
-      omega: 76.680,
+      omega: 76.68,
       w: 54.884,
       L0: 181.979,
       period: 224.701,
@@ -34,9 +34,9 @@ export const planetsData = [
     moons: [],
   },
   {
-    name: 'Earth',
+    name: "Earth",
     radius: 1,
-    texture: 'earth',
+    texture: "earth",
     axialTilt: 23.44,
     rotationPeriod: 1.0,
     orbitalElements: {
@@ -50,9 +50,9 @@ export const planetsData = [
     },
     moons: [
       {
-        name: 'Moon',
+        name: "Moon",
         radius: 0.3,
-        texture: 'moon',
+        texture: "moon",
         axialTilt: 6.68,
         rotationPeriod: 27.322,
         orbitalElements: {
@@ -68,9 +68,9 @@ export const planetsData = [
     ],
   },
   {
-    name: 'Mars',
+    name: "Mars",
     radius: 0.7,
-    texture: 'mars',
+    texture: "mars",
     axialTilt: 25.19,
     rotationPeriod: 1.025,
     orbitalElements: {
@@ -80,9 +80,8 @@ export const planetsData = [
       omega: 49.558,
       w: 286.502,
       L0: 355.453,
-      period: 686.980,
+      period: 686.98,
     },
     moons: [],
   },
 ];
-
