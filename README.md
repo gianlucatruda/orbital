@@ -9,7 +9,7 @@ Tasks:
 - [x] Incorporate true planet and moon sizes and distances (with object scaling factor in Controls pane)
 - [x] Convert to AU-based render units (and fix scaling systems) to deal with numerical stability
 - [x] Fix camera tracking to follow the object as it moves (only noticeable at realistic scale)
-- [ ] Fix bug where only sun is spinning, not any planets.
+- [x] Fix bug where only sun is spinning, not any planets.
 - [ ] Fix scaling of objects so only children of currently tracked celestial body are scaled (with smart dynamic limits)
 - [ ] Fix bug in moon's weird orbital plane (due to Earth-relative axial tilt? or something else?)
 - [ ] Cast shadows from objects upon one another

@@ -8,6 +8,16 @@ import { planetsData } from "./data";
 
 const SECONDS_PER_DAY = 86400;
 const AU_IN_KM = 149597871;
+let simControls = {
+  timeAccel: 0.01, // days / sec
+  realtime: false,
+  planetScale: 1,
+  simTime: 0.0,
+  rotateCam: false,
+  showOrbitPaths: true,
+  anchorTo: "Earth",
+};
+
 
 // Stats (FPS)
 const stats = Stats();
@@ -163,16 +173,6 @@ celestialBodies.forEach((body) => {
   celestialBodiesOptions[body.mesh.name] = body.mesh.name;
 });
 
-let simControls = {
-  timeAccel: 0.1, // days / sec
-  realtime: false,
-  planetScale: 1,
-  simTime: 0.0,
-  rotateCam: false,
-  showOrbitPaths: true,
-  anchorTo: "Sun",
-};
-
 const timeAccelControl = controlPane.addBinding(simControls, "timeAccel", {
   min: 0.0,
   label: "Speedup (days/s)",
@@ -231,12 +231,13 @@ function animate() {
     if (body.name !== "Sun") {
       body.mesh.scale.setScalar((simControls.planetScale * body.data.diameter / 2) / AU_IN_KM);
     }
-
-    // Apply orbits to all but sun 
-    if (body.name === "Sun") {
-      body.mesh.rotation.y =
-        ((simControls.simTime / 25.38) * Math.PI * 2) % (Math.PI * 2); // Sun's rotation period in days
-    } else {
+    if (body.data.rotationPeriod) {
+      const rotationAngle =
+        ((simControls.simTime / body.data.rotationPeriod * 24) * Math.PI * 2) %
+        (Math.PI * 2);
+      body.mesh.rotation.y = rotationAngle;
+    }
+    if (body.data.orbitalElements) {
       const position = calculatePositionFromMeanAnomaly(
         body.data.orbitalElements,
         simControls.simTime,
@@ -248,12 +249,6 @@ function animate() {
         body.group.position.copy(position.clone().add(parentPosition));
       } else {
         body.group.position.copy(position);
-      }
-      if (body.rotationPeriod) {
-        const rotationAngle =
-          ((simControls.simTime / body.rotationPeriod) * Math.PI * 2) %
-          (Math.PI * 2);
-        body.mesh.rotation.y = rotationAngle;
       }
     }
   });
