@@ -326,15 +326,11 @@ function animate() {
 
   // Update controls target to the selected body
   if (simControls.anchorTo) {
-    if (simControls.anchorTo === "Sun") {
-      controls.target.copy(sun.position);
-    } else {
-      const selectedBody = celestialBodies.find(
-        (body) => body.mesh.name === simControls.anchorTo,
-      );
-      if (selectedBody) {
-        controls.target.copy(selectedBody.group.position);
-      }
+    const selectedBody = celestialBodies.find(
+      (body) => body.mesh.name === simControls.anchorTo,
+    );
+    if (selectedBody) {
+      controls.target.copy(selectedBody.group.getWorldPosition(new THREE.Vector3()));
     }
   }
 
