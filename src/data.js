@@ -62,7 +62,7 @@ export const planetsData = [
         escapeVelocity: 11.186, // Escape velocity in km/s
         rotationPeriod: 23.9345, // Rotation period in hours
         lengthOfDay: 24.0, // Length of day in hours
-        obliquityToOrbit: 23.4393, // Axial tilt in degrees
+        obliquityToOrbit: 45, // Axial tilt in degrees TODO
         orbitalElements: {
           e: 0.0167086, // Eccentricity
           a: 149597870, // Semi-major axis in km
@@ -82,7 +82,7 @@ export const planetsData = [
             escapeVelocity: 2.38, // Escape velocity in km/s
             rotationPeriod: 655.728, // Rotation period in hours
             lengthOfDay: 708.7, // Length of day in hours
-            obliquityToOrbit: 6.68, // Axial tilt in degrees
+            obliquityToOrbit: 90, // Axial tilt in degrees TODO
             orbitalElements: {
               e: 0.0549, // Eccentricity
               a: 384400, // Semi-major axis in km
@@ -92,12 +92,34 @@ export const planetsData = [
               L0: 0.0, // Mean longitude at epoch (J2000.0) in degrees
               period: 27.321582, // Orbital period in Earth days
             },
-            satellites: [],
+            satellites: [
+              {
+                name: "Apollo 11 Command Module",
+                mass: 1200, // Mass in kg
+                diameter: 100, // Diameter in km TODO
+                density: null, // Density in kg/m^3
+                gravity: null, // Gravity in m/s^2
+                escapeVelocity: null, // Escape velocity in km/s
+                rotationPeriod: 0, // Rotation period in hours
+                lengthOfDay: null, // Length of day is not applicable
+                obliquityToOrbit: 0, // Axial tilt is not applicable
+                orbitalElements: {
+                  e: 0.0, // Eccentricity
+                  a: 3000, // Semi-major axis in km
+                  i: 0.0, // Inclination in degrees
+                  omega: 0, // Longitude of ascending node in degrees
+                  w: 0, // Argument of periapsis in degrees
+                  L0: 0, // Mean longitude at epoch (J2000.0) in degrees
+                  period: 0.05, // Orbital period in Earth days
+                },
+                satellites: [],
+              },
+            ],
           },
           {
             name: "ISS",
             mass: 420000, // Mass in kg
-            diameter: 109, // Diameter in meters
+            diameter: 200, // Diameter in km TODO
             density: null, // Density is not applicable
             gravity: null, // Gravity is not applicable
             escapeVelocity: null, // Escape velocity is not applicable

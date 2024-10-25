@@ -61,19 +61,19 @@ const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 
 // Create orbit paths
 function createOrbitPath(
-  orbitalElements,
-  parentPosition = new THREE.Vector3(),
+  body
 ) {
   const positions = [];
-  const steps = 36000;
+  const steps = 3600;
   for (let step = 0; step <= steps; step++) {
-    const time = (step / steps) * orbitalElements.period;
-    const position = calculatePositionFromMeanAnomaly(orbitalElements, time);
-    position.add(parentPosition);
+    const time = (step / steps) * body.data.orbitalElements.period;
+    let position = calculatePositionFromMeanAnomaly(body.data.orbitalElements, time);
+    position.divideScalar(AU_IN_KM); // Convert position to AU
+
     positions.push(
-      position.x / AU_IN_KM,
-      position.y / AU_IN_KM,
-      position.z / AU_IN_KM,
+      position.x,
+      position.y,
+      position.z,
     );
   }
   const geometry = new THREE.BufferGeometry();
@@ -83,11 +83,11 @@ function createOrbitPath(
   );
   const material = new THREE.LineBasicMaterial({
     color: 0xffffff,
-    opacity: 0.3,
+    opacity: 0.7,
     transparent: true,
   });
-  let line = new THREE.LineLoop(geometry, material, 100);
-  line.computeLineDistances();
+  let line = new THREE.LineLoop(geometry, material);
+  // line.computeLineDistances(); // Only needed for dashed lines
   return line;
 }
 
@@ -112,15 +112,6 @@ function addCelestialBody(parent, bodyData) {
   bodyGroup.add(bodyMesh);
   scene.add(bodyGroup);
 
-  // Create orbit path
-  if (bodyData.orbitalElements) {
-    const orbitPath = createOrbitPath(bodyData.orbitalElements);
-    orbitPaths.push(orbitPath);
-    scene.add(orbitPath);
-  } else {
-    console.log("No orbital elements for " + bodyData.name);
-  }
-
   const celestialBody = {
     name: bodyData.name,
     group: bodyGroup,
@@ -138,6 +129,47 @@ function addCelestialBody(parent, bodyData) {
 }
 
 addCelestialBody(null, planetsData[0]);
+
+function computePositions(celestialBodies) {
+  celestialBodies.forEach((body) => {
+    // Scale the planets
+    if (body.name !== "Sun") {
+      body.mesh.scale.setScalar(
+        (simControls.planetScale * body.data.diameter) / 2 / AU_IN_KM,
+      );
+    }
+    if (body.data.rotationPeriod) {
+      const rotationAngle =
+        ((simControls.simTime / body.data.rotationPeriod) * 24 * Math.PI * 2) %
+        (Math.PI * 2);
+      body.mesh.rotation.y = rotationAngle;
+    }
+    if (body.data.orbitalElements) {
+      let position = calculatePositionFromMeanAnomaly(
+        body.data.orbitalElements,
+        simControls.simTime,
+      );
+      position.divideScalar(AU_IN_KM); // Convert position to AU
+      const parentPosition = body.parent.group.position;
+      position = position.clone().add(parentPosition);
+      body.group.position.copy(position);
+    }
+  });
+}
+
+function computeOrbitPaths(celestialBodies) {
+  celestialBodies.forEach((body) => {
+    if (body.data.orbitalElements) {
+      const orbitPath = createOrbitPath(body);
+      orbitPaths.push(orbitPath);
+      body.parent.group.add(orbitPath);
+    }
+  });
+}
+
+// computePositions(celestialBodies);
+computeOrbitPaths(celestialBodies);
+
 console.log({ celestialBodies });
 console.log({ orbitPaths });
 
@@ -231,34 +263,7 @@ function animate() {
       (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
   }
 
-  celestialBodies.forEach((body) => {
-    // Scale the planets
-    if (body.name !== "Sun") {
-      body.mesh.scale.setScalar(
-        (simControls.planetScale * body.data.diameter) / 2 / AU_IN_KM,
-      );
-    }
-    if (body.data.rotationPeriod) {
-      const rotationAngle =
-        ((simControls.simTime / body.data.rotationPeriod) * 24 * Math.PI * 2) %
-        (Math.PI * 2);
-      body.mesh.rotation.y = rotationAngle;
-    }
-    if (body.data.orbitalElements) {
-      const position = calculatePositionFromMeanAnomaly(
-        body.data.orbitalElements,
-        simControls.simTime,
-      );
-      position.divideScalar(AU_IN_KM); // Convert position to AU
-      if (body.parent) {
-        // For satellites, add the parent's position
-        const parentPosition = body.parent.group.position;
-        body.group.position.copy(position.clone().add(parentPosition));
-      } else {
-        body.group.position.copy(position);
-      }
-    }
-  });
+  computePositions(celestialBodies);
 
   // Toggle orbit paths visibility
   orbitPaths.forEach((path) => {
@@ -272,9 +277,9 @@ function animate() {
     );
     if (selectedBody) {
       const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
-      const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
       camControls.target.copy(target);
-      if (selectedBody.name !== "Sun") {
+      const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
+      if (selectedBody.name !== "Sun" && !simControls.realtime && !simControls.rotateCam) {
         camera.position.set(target.x + eps, target.y + eps, target.z + eps);
       }
     }

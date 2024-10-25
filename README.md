@@ -11,8 +11,10 @@ Tasks:
 - [x] Fix camera tracking to follow the object as it moves (only noticeable at realistic scale)
 - [x] Fix bug where only sun is spinning, not any planets.
 - [x] Fix orbit path drift
+- [x] Fix orbit path drawing for satellites
+- [ ] Fix bug in satellite (child) orbital path tilt (due to Earth-relative axial tilt? or something else?).
+- [ ] Fix bug where animated object diverges from true orbit at higher speedup.
 - [ ] Fix scaling of objects so only children of currently tracked celestial body are scaled (with smart dynamic limits)
-- [ ] Fix bug in moon's weird orbital plane (due to Earth-relative axial tilt? or something else?). Probably need to rewrite the orbit calculations for all satellites to be relative to ecliptic.
 - [ ] Cast shadows from objects upon one another
 - [ ] Add textures (and a proper model) for the spacecraft
 - [ ] Add N-body physics to engine to allow orbital maneuvers between spacecraft and celestial bodies
