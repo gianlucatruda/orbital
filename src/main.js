@@ -103,14 +103,15 @@ function addCelestialBody(parent, bodyData) {
   const bodyGroup = new THREE.Object3D();
   bodyGroup.name = bodyData.name + "_group";
   const axialTilt = degToRad(bodyData.obliquityToOrbit || 0);
-  bodyGroup.rotation.x = axialTilt;
 
   const bodyMesh = new THREE.Mesh(sphereGeometry, bodyMaterial);
-  bodyMesh.scale.setScalar(bodyData.diameter / 2 / AU_IN_KM); // Radius in AU
   bodyMesh.name = bodyData.name;
+  bodyMesh.scale.setScalar(bodyData.diameter / 2 / AU_IN_KM); // Radius in AU
+  // Apply tilt to mesh (NOT body) so children (satellites) are unaffected
+  bodyMesh.rotation.x = axialTilt;
   bodyGroup.add(bodyMesh);
 
-  // Use relative positioning of children to the parent for concistent orbits
+  // Use relative positioning of children to the parent for consistent orbits
   if (parent) {
     parent.group.add(bodyGroup);
   } else {
@@ -147,7 +148,7 @@ function computePositions(celestialBodies) {
       const rotationAngle =
         ((simControls.simTime / body.data.rotationPeriod) * 24 * Math.PI * 2) %
         (Math.PI * 2);
-      body.mesh.rotation.y = rotationAngle;
+      body.mesh.rotation.y = rotationAngle; // Must rotate the mesh, not the object else you'll fuck satellite orbits
     }
     if (body.data.orbitalElements) {
       let position = calculatePositionFromMeanAnomaly(

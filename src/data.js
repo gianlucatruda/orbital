@@ -19,7 +19,7 @@ export const planetsData = [
         rotationPeriod: 1407.6, // Rotation period in hours
         lengthOfDay: 4222.6, // Length of day in hours
         obliquityToOrbit: 0.034, // Axial tilt in degrees
-        orbitalElements: {
+        orbitalElements: { // Relative to the ecliptic
           e: 0.20563,
           a: 57909050,
           i: 7.0049,
@@ -115,10 +115,8 @@ export const planetsData = [
             lengthOfDay: null,
             obliquityToOrbit: null,
             orbitalElements: {
-              // e: 0.000167, // Eccentricity
-              // a: 6771, // Semi-major axis in km
-              e: 0.2, // TODO
-              a: 10000, // TODO
+              e: 0.000167,
+              a: 6771,
               i: 51.64,
               omega: 0,
               w: 0,
