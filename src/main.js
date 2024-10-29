@@ -108,9 +108,14 @@ function addCelestialBody(parent, bodyData) {
   const bodyMesh = new THREE.Mesh(sphereGeometry, bodyMaterial);
   bodyMesh.scale.setScalar(bodyData.diameter / 2 / AU_IN_KM); // Radius in AU
   bodyMesh.name = bodyData.name;
-
   bodyGroup.add(bodyMesh);
-  scene.add(bodyGroup);
+
+  // Use relative positioning of children to the parent for concistent orbits
+  if (parent) {
+    parent.group.add(bodyGroup);
+  } else {
+    scene.add(bodyGroup);
+  }
 
   const celestialBody = {
     name: bodyData.name,
@@ -150,8 +155,6 @@ function computePositions(celestialBodies) {
         simControls.simTime,
       );
       position.divideScalar(AU_IN_KM); // Convert position to AU
-      const parentPosition = body.parent.group.position;
-      position = position.clone().add(parentPosition);
       body.group.position.copy(position);
     }
   });
