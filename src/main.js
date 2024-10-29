@@ -60,21 +60,18 @@ const materials = {
 const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 
 // Create orbit paths
-function createOrbitPath(
-  body
-) {
+function createOrbitPath(body) {
   const positions = [];
   const steps = 3600;
   for (let step = 0; step <= steps; step++) {
     const time = (step / steps) * body.data.orbitalElements.period;
-    let position = calculatePositionFromMeanAnomaly(body.data.orbitalElements, time);
+    let position = calculatePositionFromMeanAnomaly(
+      body.data.orbitalElements,
+      time,
+    );
     position.divideScalar(AU_IN_KM); // Convert position to AU
 
-    positions.push(
-      position.x,
-      position.y,
-      position.z,
-    );
+    positions.push(position.x, position.y, position.z);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
@@ -283,7 +280,11 @@ function animate() {
       const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
       camControls.target.copy(target);
       const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
-      if (selectedBody.name !== "Sun" && !simControls.realtime && !simControls.rotateCam) {
+      if (
+        selectedBody.name !== "Sun" &&
+        !simControls.realtime &&
+        !simControls.rotateCam
+      ) {
         camera.position.set(target.x + eps, target.y + eps, target.z + eps);
       }
     }
