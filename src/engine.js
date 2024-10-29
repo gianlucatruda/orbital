@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { degToRad } from "three/src/math/MathUtils";
 
-// Function to calculate the position from mean anomaly
-export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
+const G = 6.67430e-11; // gravitational constant in m^3 kg^-1 s^-2
+
+export function calculateOrbitAtTime(orbitalElements, time) {
   const { a, e, i, omega, w, L0, period } = orbitalElements;
 
   const n = 360 / period; // Mean motion (degrees per day)
@@ -22,6 +23,7 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
       Math.sqrt(1 + e) * Math.sin(E / 2),
       Math.sqrt(1 - e) * Math.cos(E / 2),
     );
+  // TODO should this be multiplied by tan(E/2) ?
 
   // Distance from the central body (in km)
   const r = a * (1 - e * Math.cos(E));
@@ -47,5 +49,23 @@ export function calculatePositionFromMeanAnomaly(orbitalElements, time) {
     y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
   const z = x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
 
-  return new THREE.Vector3(y, z, x); // Note: Swapped y and z for correct orientation
+  // Calculate velocity TODO units? Why so small?
+  const meanMotion = Math.sqrt(G / Math.pow(a, 3));
+  let vx_orb = -meanMotion * a * Math.sin(E) / (1 - e * Math.cos(E));
+  let vy_orb = meanMotion * a * Math.sqrt(1 - Math.pow(e, 2)) / (1 - e * Math.cos(E));
+
+  // Transformation from orbital plane to ecliptic coordinates
+  const vx =
+    vx_orb * (cosOmega * cosW - sinOmega * sinW * cosI) -
+    vy_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
+  const vy =
+    vx_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
+    vy_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
+  const vz = vx_orb * (sinW * sinI) + vy_orb * (cosW * sinI);
+
+  // Note: Swapped order for correct orientation in Three.js
+  return {
+    position: new THREE.Vector3(y, z, x),
+    velocity: new THREE.Vector3(vy, vz, vx),
+  };
 }

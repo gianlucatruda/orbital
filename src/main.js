@@ -2,13 +2,13 @@ import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Pane } from "tweakpane";
-import { calculatePositionFromMeanAnomaly } from "./engine";
+import { calculateOrbitAtTime } from "./engine";
 import { degToRad } from "three/src/math/MathUtils";
 import { planetsData } from "./data";
 
 const SECONDS_PER_DAY = 86400;
 const AU_IN_KM = 149597871;
-let simControls = {
+let simParams = {
   timeAccel: 0.01, // days / sec
   realtime: false,
   planetScale: 1,
@@ -65,10 +65,10 @@ function createOrbitPath(body) {
   const steps = 3600;
   for (let step = 0; step <= steps; step++) {
     const time = (step / steps) * body.data.orbitalElements.period;
-    let position = calculatePositionFromMeanAnomaly(
+    let position = calculateOrbitAtTime(
       body.data.orbitalElements,
       time,
-    );
+    ).position;
     position.divideScalar(AU_IN_KM); // Convert position to AU
 
     positions.push(position.x, position.y, position.z);
@@ -138,27 +138,34 @@ function computePositions(celestialBodies) {
     // Scale the planets
     if (body.name !== "Sun") {
       body.mesh.scale.setScalar(
-        (simControls.planetScale * body.data.diameter) / 2 / AU_IN_KM,
+        (simParams.planetScale * body.data.diameter) / 2 / AU_IN_KM,
       );
     }
     if (body.data.rotationPeriod) {
       const rotationAngle =
-        ((simControls.simTime / body.data.rotationPeriod) * 24 * Math.PI * 2) %
+        ((simParams.simTime / body.data.rotationPeriod) * 24 * Math.PI * 2) %
         (Math.PI * 2);
       body.mesh.rotation.y = rotationAngle; // Must rotate the mesh, not the object else you'll fuck satellite orbits
     }
     if (body.data.orbitalElements) {
-      let position = calculatePositionFromMeanAnomaly(
+      const pv = calculateOrbitAtTime(
         body.data.orbitalElements,
-        simControls.simTime,
+        simParams.simTime,
       );
+      let position = pv.position;
+      let velocity = pv.velocity;
+      if (body.name == "ISS") {
+        // console.log(position, velocity);
+      }
       position.divideScalar(AU_IN_KM); // Convert position to AU
-      body.group.position.copy(position);
+      // velocity.divideScalar(AU_IN_KM); // Convert velocity to AU
+      body.group.position.copy(position.add(velocity));
+      // body.group.position.copy(position)
     }
   });
 }
 
-function computeOrbitPaths(celestialBodies) {
+function constructOrbitPaths(celestialBodies) {
   celestialBodies.forEach((body) => {
     if (body.data.orbitalElements) {
       const orbitPath = createOrbitPath(body);
@@ -168,8 +175,7 @@ function computeOrbitPaths(celestialBodies) {
   });
 }
 
-// computePositions(celestialBodies);
-computeOrbitPaths(celestialBodies);
+constructOrbitPaths(celestialBodies);
 
 console.log({ celestialBodies });
 console.log({ orbitPaths });
@@ -202,6 +208,10 @@ const controlPane = pane.addFolder({
   title: "Controls",
   expanded: true,
 });
+const dataPane = pane.addFolder({
+  title: "Data",
+  expanded: true,
+});
 
 // Prepare options for celestial body selection
 const celestialBodiesOptions = {};
@@ -209,27 +219,27 @@ celestialBodies.forEach((body) => {
   celestialBodiesOptions[body.mesh.name] = body.mesh.name;
 });
 
-const timeAccelControl = controlPane.addBinding(simControls, "timeAccel", {
+controlPane.addBinding(simParams, "anchorTo", {
+  options: celestialBodiesOptions,
+  label: "Anchor To",
+});
+const timeAccelControl = controlPane.addBinding(simParams, "timeAccel", {
   min: 0.0,
   label: "Speedup (days/s)",
   format: (v) => v.toFixed(6),
 });
-controlPane.addBinding(simControls, "realtime", { label: "Realtime" });
-controlPane.addBinding(simControls, "planetScale", {
+controlPane.addBinding(simParams, "realtime", { label: "Realtime" });
+controlPane.addBinding(simParams, "planetScale", {
   min: 1,
   max: 1000,
   step: 1,
   label: "Planet scaling",
 });
-controlPane.addBinding(simControls, "rotateCam");
-controlPane.addBinding(simControls, "showOrbitPaths", {
+controlPane.addBinding(simParams, "rotateCam");
+controlPane.addBinding(simParams, "showOrbitPaths", {
   label: "Show Orbit Paths",
 });
-controlPane.addBinding(simControls, "anchorTo", {
-  options: celestialBodiesOptions,
-  label: "Anchor To",
-});
-controlPane.addBinding(simControls, "simTime", {
+dataPane.addBinding(simParams, "simTime", {
   readonly: true,
   label: "delta t (days)",
   format: (v) => v.toFixed(5),
@@ -251,15 +261,15 @@ window.addEventListener("resize", () => {
 let clock = new THREE.Clock();
 
 function animate() {
-  if (simControls.realtime) {
-    simControls.simTime += clock.getDelta() / SECONDS_PER_DAY;
+  if (simParams.realtime) {
+    simParams.simTime += clock.getDelta() / SECONDS_PER_DAY;
     // Temporarily disable time acceleration controls
     timeAccelControl.disabled = true;
     timeAccelControl.refresh();
   } else {
     timeAccelControl.disabled = false;
-    simControls.simTime +=
-      simControls.timeAccel *
+    simParams.simTime +=
+      simParams.timeAccel *
       SECONDS_PER_DAY *
       (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
   }
@@ -268,13 +278,13 @@ function animate() {
 
   // Toggle orbit paths visibility
   orbitPaths.forEach((path) => {
-    path.visible = simControls.showOrbitPaths;
+    path.visible = simParams.showOrbitPaths;
   });
 
   // Update camera position and target
-  if (simControls.anchorTo) {
+  if (simParams.anchorTo) {
     const selectedBody = celestialBodies.find(
-      (body) => body.mesh.name === simControls.anchorTo,
+      (body) => body.mesh.name === simParams.anchorTo,
     );
     if (selectedBody) {
       const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
@@ -282,15 +292,19 @@ function animate() {
       const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
       if (
         selectedBody.name !== "Sun" &&
-        !simControls.realtime &&
-        !simControls.rotateCam
+        !simParams.realtime &&
+        !simParams.rotateCam
       ) {
-        camera.position.set(target.x + eps, target.y + eps, target.z + eps);
+        // camera.position.set(target.x + eps, target.y + eps, target.z + eps);
+        camControls.maxDistance = selectedBody.data.diameter * 2.0 / AU_IN_KM;
+      }
+      else {
+        camControls.maxDistance = 100;
       }
     }
   }
 
-  camControls.autoRotate = simControls.rotateCam;
+  camControls.autoRotate = simParams.rotateCam;
   camControls.update();
   stats.update();
   renderer.render(scene, camera);
