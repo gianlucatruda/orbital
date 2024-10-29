@@ -15,11 +15,13 @@ Tasks:
 - [x] Fix bug where animated object diverges from true orbit at higher speedup.
 - [x] Fix bug in satellite (child) orbital path tilt
 - [ ] Fix scaling of objects so only children of currently tracked celestial body are scaled (with smart dynamic limits)
+- [ ] Fix camera jankiness when using true sizes and distances. Replace OrbitControls with custom camera system?
 - [ ] Cast shadows from objects upon one another
 - [ ] Add textures (and a proper model) for the spacecraft
 - [ ] Add N-body physics to engine to allow orbital maneuvers between spacecraft and celestial bodies
 - [ ] Add a level/puzzle: with a given delta V and time budget, get from body A's orbit to body B's orbit
 - [ ] Make sun appear brighter and give it some kind of light flare / glow effects
 - [ ] Add a WebGL fragment shader to simulate stars as background
+- [ ] Calibrate the solar system against https://eyes.nasa.gov/apps/solar-system
 - [ ] Simulate Earth's atmosphere (can I write shaders for that? e.g. Perlin noise?)
 - [ ] Migrate physics to a Rust engine -> WASM bind (see `rustify` branch for WIP)
