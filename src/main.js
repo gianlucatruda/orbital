@@ -313,16 +313,22 @@ function satStats(body, stats = {}) {
 
 }
 
+// Stats for the ISS (TODO generalise to any movable satellite)
 let iss = celestialBodies.find(body => body.name === "ISS");
 let issStats = satStats(iss);
+const issStatsPane = dataPane.addFolder({
+  title: "ISS",
+  expanded: true,
+});
 for (const stat in issStats) {
-  dataPane.addBinding(issStats, stat, {
+  issStatsPane.addBinding(issStats, stat, {
     readonly: true,
     label: stat,
     format: (v) => v.toFixed(2),
   });
 }
 
+// Adjust ISS orbit after initialisation
 iss.data.orbitalElements.a += 10000;
 iss.data.orbitalElements.e += 0.5;
 
@@ -347,6 +353,23 @@ function animate() {
     path.visible = simParams.showOrbitPaths;
   });
 
+  // TODO hacky orbital redrawing for dynamic orbits. Fix and generalise.
+  celestialBodies.forEach(body => {
+    if (body.name == "ISS") {
+      satStats(body, issStats);
+      if (hotpaths[body.name].length > 0) {
+        let oldPath = hotpaths[body.name].pop();
+        body.parent.group.remove(oldPath);
+      }
+      // body.data.orbitalElements.a += 0.1;
+      // body.data.orbitalElements.e += 0.001;
+      let orbitPath = createOrbitPath(body, 0x00ff00);
+      hotpaths[body.name].push(orbitPath);
+      body.parent.group.add(orbitPath);
+    }
+
+  });
+
   // Update camera position and target
   if (simParams.anchorTo) {
     const selectedBody = celestialBodies.find(
@@ -369,23 +392,6 @@ function animate() {
       }
     }
   }
-
-  // TODO hacky orbital redrawing for dynamic orbits. Fix and generalise.
-  celestialBodies.forEach(body => {
-    if (body.name == "ISS") {
-      satStats(body, issStats);
-      if (hotpaths[body.name].length > 0) {
-        let oldPath = hotpaths[body.name].pop();
-        body.parent.group.remove(oldPath);
-      }
-      // body.data.orbitalElements.a += 0.1;
-      // body.data.orbitalElements.e += 0.001;
-      let orbitPath = createOrbitPath(body, 0x00ff00);
-      hotpaths[body.name].push(orbitPath);
-      body.parent.group.add(orbitPath);
-    }
-
-  });
 
   camControls.autoRotate = simParams.rotateCam;
   camControls.update();

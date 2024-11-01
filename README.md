@@ -14,9 +14,11 @@ Tasks:
 - [x] Fix orbit path drawing for satellites
 - [x] Fix bug where animated object diverges from true orbit at higher speedup.
 - [x] Fix bug in satellite (child) orbital path tilt
-- [ ] Update engine to allow orbital maneuvers between spacecraft and celestial bodies
+- [ ] WIP: Update engine to allow orbital maneuvers between spacecraft and celestial bodies
+- [ ] Add some tests for the core physics (e.g. using orbital formulae to cross-check)
 - [ ] Fix scaling of objects so only children of currently tracked celestial body are scaled (with smart dynamic limits)
 - [ ] Fix camera jankiness when using true sizes and distances. Replace OrbitControls with custom camera system?
+- [ ] Refactor and tidy up the code. Fewer side-effects.
 - [ ] Cast shadows from objects upon one another
 - [ ] Add textures (and a proper model) for the spacecraft
 - [ ] Add a level/puzzle: with a given delta V and time budget, get from body A's orbit to body B's orbit
