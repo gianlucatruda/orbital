@@ -323,6 +323,9 @@ for (const stat in issStats) {
   });
 }
 
+iss.data.orbitalElements.a += 10000;
+iss.data.orbitalElements.e += 0.5;
+
 function animate() {
   if (simParams.realtime) {
     simParams.simTime += clock.getDelta() / SECONDS_PER_DAY;
@@ -359,7 +362,7 @@ function animate() {
         !simParams.rotateCam
       ) {
         // camera.position.set(target.x + eps, target.y + eps, target.z + eps);
-        camControls.maxDistance = selectedBody.data.diameter * 2.0 / AU_IN_KM;
+        camControls.maxDistance = selectedBody.data.diameter * 5.0 / AU_IN_KM;
       }
       else {
         camControls.maxDistance = 100;
@@ -367,7 +370,7 @@ function animate() {
     }
   }
 
-  // TODO hacky. Fix
+  // TODO hacky orbital redrawing for dynamic orbits. Fix and generalise.
   celestialBodies.forEach(body => {
     if (body.name == "ISS") {
       satStats(body, issStats);
