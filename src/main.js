@@ -8,6 +8,8 @@ import { planetsData } from "./data";
 
 const SECONDS_PER_DAY = 86400;
 const AU_IN_KM = 149597871;
+const G = 6.67430e-11; // gravitational constant in m^3 kg^-1 s^-2
+
 let simParams = {
   timeAccel: 0.01, // days / sec
   realtime: false,
@@ -60,7 +62,7 @@ const materials = {
 const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
 
 // Create orbit paths
-function createOrbitPath(body) {
+function createOrbitPath(body, color = 0xffffff) {
   const positions = [];
   const steps = 3600;
   for (let step = 0; step <= steps; step++) {
@@ -79,7 +81,7 @@ function createOrbitPath(body) {
     new THREE.Float32BufferAttribute(positions, 3),
   );
   const material = new THREE.LineBasicMaterial({
-    color: 0xffffff,
+    color: color,
     opacity: 0.7,
     transparent: true,
   });
@@ -259,6 +261,67 @@ window.addEventListener("resize", () => {
 });
 
 let clock = new THREE.Clock();
+let hotpaths = { "ISS": [] };
+
+function satStats(body, stats = {}) {
+  if (!body.parent) {
+    return null
+  }
+  const M = body.parent.data.mass;
+  const P = body.data.orbitalElements.period * 3600 * 24; // In seconds
+  const OEs = body.data.orbitalElements;
+  const a = OEs.a * 1000; // In m
+  const e = OEs.e;
+  const r_apo = (1 + e) * a; // In m
+  const r_per = (1 - e) * a; // In m
+  const r = body.group.position.length() * AU_IN_KM * 1000; // Orbital radius in m
+
+  // Specific energy eps (in J/kg)
+  let eps = (-G * M) / (2 * a); // J/kg
+
+  // Velocities a apoapsis and periapsis (in m/s)
+  let v_apo = Math.sqrt(2 * eps + ((2 * G * M) / r_apo));
+  let v_per = Math.sqrt(2 * eps + ((2 * G * M) / r_per));
+
+  // Current velocity (in m/s)
+  let v = Math.sqrt(2 * eps + ((2 * G * M) / r));
+
+  if (stats) {
+    // TODO this sucks!
+    stats.r = r;
+    stats.v = v;
+    stats.eps = eps;
+    stats.r_per = r_per;
+    stats.v_per = v_per;
+    stats.r_apo = r_apo;
+    stats.v_apo = v_apo;
+    return stats
+  }
+  stats = { r, v, eps, r_per, v_per, r_apo, v_apo };
+  return stats
+
+  // TODO these should become tests/asserts 
+  // console.log({ P, a });
+  // console.log((r_per * v_per) - (r_apo * v_apo)); // Should be 0
+  // console.log((r_apo + r_per) - 2 * a); // Should be 0
+  // console.log(
+  //   ((G * M) / (4 * Math.pow(Math.PI, 2))) * Math.pow(P, 2) - Math.pow(a, 3)
+  // ); // should be 0
+  // console.log(
+  //   Math.sqrt((Math.pow(a, 3) * 4 * Math.pow(Math.PI, 2)) / (G * M)) - P
+  // ); // should be 0
+
+}
+
+let iss = celestialBodies.find(body => body.name === "ISS");
+let issStats = satStats(iss);
+for (const stat in issStats) {
+  dataPane.addBinding(issStats, stat, {
+    readonly: true,
+    label: stat,
+    format: (v) => v.toFixed(2),
+  });
+}
 
 function animate() {
   if (simParams.realtime) {
@@ -289,7 +352,7 @@ function animate() {
     if (selectedBody) {
       const target = selectedBody.group.getWorldPosition(new THREE.Vector3());
       camControls.target.copy(target);
-      const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
+      // const eps = (selectedBody.data.diameter * 1.25) / AU_IN_KM;
       if (
         selectedBody.name !== "Sun" &&
         !simParams.realtime &&
@@ -304,11 +367,30 @@ function animate() {
     }
   }
 
+  // TODO hacky. Fix
+  celestialBodies.forEach(body => {
+    if (body.name == "ISS") {
+      satStats(body, issStats);
+      if (hotpaths[body.name].length > 0) {
+        let oldPath = hotpaths[body.name].pop();
+        body.parent.group.remove(oldPath);
+      }
+      // body.data.orbitalElements.a += 0.1;
+      // body.data.orbitalElements.e += 0.001;
+      let orbitPath = createOrbitPath(body, 0x00ff00);
+      hotpaths[body.name].push(orbitPath);
+      body.parent.group.add(orbitPath);
+    }
+
+  });
+
   camControls.autoRotate = simParams.rotateCam;
   camControls.update();
   stats.update();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
+
+
 }
 
 animate();
