@@ -1,4 +1,4 @@
-// https://www.shadertoy.com/view/XsX3zB
+// Based on https://www.shadertoy.com/view/XsX3zB
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform sampler2D u_texture;
@@ -91,6 +91,10 @@ void main() {
 
     value = 0.5 + 0.5 * value;
 
-    vec4 noise = vec4(vec3(value), 1.0);
-    gl_FragColor = texture + 0.9 * noise;
+    vec4 noise = vec4(vec3(value), 0.5);
+    if (value > 0.65) {
+        gl_FragColor = noise;
+    } else {
+        gl_FragColor = texture + noise;
+    }
 }

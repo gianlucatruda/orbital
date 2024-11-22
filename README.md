@@ -26,5 +26,5 @@ Tasks:
 - [ ] Make sun appear brighter and give it some kind of light flare / glow effects (see https://glitch.com/~polite-playful-wool)
 - [ ] Add a WebGL fragment shader to simulate stars as background
 - [ ] Calibrate the solar system against https://eyes.nasa.gov/apps/solar-system
-- [ ] Simulate Earth's atmosphere (can I write shaders for that? e.g. Perlin noise?) 
+- [ ] WIP: Simulate Earth's atmosphere (can I write shaders for that? e.g. Perlin noise?) 
 - [ ] Migrate physics to a Rust engine -> WASM bind (see `rustify` branch for WIP)

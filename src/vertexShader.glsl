@@ -1,4 +1,4 @@
-// https://waelyasmina.net/articles/glsl-and-shaders-tutorial-for-beginners-webgl-threejs/ -->
+// Based on https://waelyasmina.net/articles/glsl-and-shaders-tutorial-for-beginners-webgl-threejs/ -->
 uniform float u_time;
 varying vec2 vUv;
 void main() {
