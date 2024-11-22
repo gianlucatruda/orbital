@@ -15,6 +15,7 @@ Tasks:
 - [x] Fix bug where animated object diverges from true orbit at higher speedup.
 - [x] Fix bug in satellite (child) orbital path tilt
 - [ ] WIP: Update engine to allow orbital maneuvers between spacecraft and celestial bodies
+- [ ] Fix bug where `Array.forEach` throws `RangeError: Array buffer allocation failed` (happened at delta t = `16103.61413`)
 - [ ] Add some tests for the core physics (e.g. using orbital formulae to cross-check)
 - [ ] Fix scaling of objects so only children of currently tracked celestial body are scaled (with smart dynamic limits)
 - [ ] Fix camera jankiness when using true sizes and distances. Replace OrbitControls with custom camera system?
