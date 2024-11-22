@@ -15,6 +15,25 @@
 
   <body>
     <canvas class="threejs"></canvas>
+    <script id="vertexshader" type="vertex">
+        uniform float u_time;
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+    <script id="fragmentshader" type="fragment">
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform sampler2D u_texture;
+        varying vec2 vUv;
+        void main() {
+            vec2 st = gl_FragCoord.xy / u_resolution;
+            vec4 texture = texture2D(u_texture, vUv);
+            gl_FragColor = texture;
+        }
+    </script>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

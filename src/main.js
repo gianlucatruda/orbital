@@ -16,7 +16,7 @@ let simParams = {
   planetScale: 1,
   simTime: 0.0,
   rotateCam: false,
-  showOrbitPaths: true,
+  showOrbitPaths: false,
   anchorTo: "Earth",
 };
 
@@ -48,12 +48,27 @@ Object.values(textures).forEach((texture) => {
   texture.colorSpace = THREE.SRGBColorSpace;
 });
 
+const earthUniforms = {
+  u_time: { value: 0.0 },
+  u_resolution: {
+    value: new THREE.Vector2(window.innerWidth, window.innerHeight)
+      .multiplyScalar(window.devicePixelRatio)
+  },
+  u_texture: { value: new THREE.TextureLoader().load('./textures/2k_earth_daymap.jpg') }
+}
+
 // Materials
 const materials = {
   sun: new THREE.MeshBasicMaterial({ map: textures.sun }),
   mercury: new THREE.MeshStandardMaterial({ map: textures.mercury }),
   venus: new THREE.MeshStandardMaterial({ map: textures.venus }),
-  earth: new THREE.MeshStandardMaterial({ map: textures.earth }),
+  // earth: new THREE.MeshStandardMaterial({ map: textures.earth }),
+  earth: new THREE.ShaderMaterial({
+    vertexShader: document.getElementById('vertexshader').textContent,
+    fragmentShader: document.getElementById('fragmentshader').textContent,
+    wireframe: false,
+    uniforms: earthUniforms,
+  }),
   mars: new THREE.MeshStandardMaterial({ map: textures.mars }),
   moon: new THREE.MeshStandardMaterial({ map: textures.moon }),
 };
@@ -208,11 +223,11 @@ renderer.setPixelRatio(window.devicePixelRatio);
 
 const controlPane = pane.addFolder({
   title: "Controls",
-  expanded: true,
+  expanded: false,
 });
 const dataPane = pane.addFolder({
   title: "Data",
-  expanded: true,
+  expanded: false,
 });
 
 // Prepare options for celestial body selection
@@ -345,6 +360,9 @@ function animate() {
       SECONDS_PER_DAY *
       (clock.getDelta() / SECONDS_PER_DAY); // Convert seconds to days
   }
+
+  // Sync simTime with shader uniform time
+  earthUniforms.u_time.value = simParams.simTime;
 
   computePositions(celestialBodies);
 
