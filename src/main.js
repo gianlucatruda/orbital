@@ -6,6 +6,10 @@ import { calculateOrbitAtTime } from "./engine";
 import { degToRad } from "three/src/math/MathUtils";
 import { planetsData } from "./data";
 
+// Vite's raw loading of files (for GLSL shader embedding)
+import fragmentShader from './fragmentShader.glsl?raw';
+import vertexShader from './vertexShader.glsl?raw';
+
 const SECONDS_PER_DAY = 86400;
 const AU_IN_KM = 149597871;
 const G = 6.67430e-11; // gravitational constant in m^3 kg^-1 s^-2
@@ -64,9 +68,8 @@ const materials = {
   venus: new THREE.MeshStandardMaterial({ map: textures.venus }),
   // earth: new THREE.MeshStandardMaterial({ map: textures.earth }),
   earth: new THREE.ShaderMaterial({
-    vertexShader: document.getElementById('vertexshader').textContent,
-    fragmentShader: document.getElementById('fragmentshader').textContent,
-    wireframe: false,
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
     uniforms: earthUniforms,
   }),
   mars: new THREE.MeshStandardMaterial({ map: textures.mars }),
