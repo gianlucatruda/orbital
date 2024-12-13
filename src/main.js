@@ -367,30 +367,29 @@ function animate() {
         let ISSParams = calculateOrbitAtTime(
           body.data.orbitalElements,
           simParams.simTime,
-
+          body.parent.data.mass // Pass centralMass here
         );
 
         console.log("Time to burn! Old orbital elements:", body.data.orbitalElements);
 
         // Convert position and velocity to SI units (meters and meters per second)
-        // Positions are in km, velocities are in km/s
         ISSParams.position.multiplyScalar(1000); // km to m
         ISSParams.velocity.multiplyScalar(1000); // km/s to m/s
 
         // Apply delta-v (burn)
         ISSParams.velocity.add(deltaV.clone().multiplyScalar(1000)); // km/s to m/s
 
+        // Convert back to km and km/s
+        ISSParams.position.multiplyScalar(1 / 1000); // m to km
+        ISSParams.velocity.multiplyScalar(1 / 1000); // m/s to km/s
+
         // Recalculate orbital elements
         let ISSOrbElements = calculateElements(
           ISSParams.position,
           ISSParams.velocity,
+          body.parent.data.mass, // Pass centralMass
+          simParams.simTime
         );
-
-        // Convert the semi-major axis from meters back to kilometers for consistency
-        ISSOrbElements.a /= 1000; // m to km
-
-        // Convert the period from seconds to days for consistency
-        ISSOrbElements.period /= SECONDS_PER_DAY;
 
         // Update the orbital elements
         body.data.orbitalElements = ISSOrbElements;
@@ -407,6 +406,9 @@ function animate() {
         body.parent.group.add(orbitPath);
 
         console.log("Burn applied! New orbital elements:", body.data.orbitalElements);
+        console.log("ISS Position after burn (km):", ISSParams.position);
+        console.log("ISS Velocity after burn (km/s):", ISSParams.velocity);
+
       }
     }
   });

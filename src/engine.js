@@ -1,7 +1,14 @@
 import * as THREE from "three";
-const G = 6.67430e-11; // gravitational constant in m^3 kg^-1 s^-2
+const G = 6.67430e-11; // Gravitational constant in m^3 kg^-1 s^-2
 
 import { degToRad, radToDeg } from "three/src/math/MathUtils";
+
+/**
+ * Clamp function to ensure values are within valid ranges for trigonometric functions.
+ */
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
 
 /**
  * Calculates the position and velocity vectors at a given time for specified orbital elements.
@@ -9,211 +16,200 @@ import { degToRad, radToDeg } from "three/src/math/MathUtils";
  * @param {Object} orbitalElements - The orbital elements of the body.
  * @param {number} deltaDays - Time in days since epoch.
  * @param {number} centralMass - Mass of the central body in kg.
- * @returns {Object} - Position and velocity vectors (in meters and m/s).
+ * @returns {Object} - Position and velocity vectors (in km and km/s).
  */
 export function calculateOrbitAtTime(orbitalElements, deltaDays, centralMass) {
-  const deltaSecs = deltaDays * 86400; // seconds since epoch
-  const { e, a, i, omega, w, L0 } = orbitalElements; // a in km, angles in degrees
+  const {
+    e,       // Eccentricity
+    a,       // Semi-major axis in km
+    i,       // Inclination in degrees
+    omega,   // Longitude of ascending node in degrees
+    w,       // Argument of periapsis in degrees
+    L0,      // Mean longitude at epoch in degrees
+    period, // Orbital period in days
+  } = orbitalElements;
 
-  // Convert degrees to radians
-  const i_rad = degToRad(i);
-  const omega_rad = degToRad(omega);
-  const w_rad = degToRad(w);
-  const L0_rad = degToRad(L0);
+  const n = 360 / period; // Mean motion (degrees per day)
+  const M_deg = (L0 + n * deltaDays) % 360; // Mean anomaly in degrees
+  const M_rad = degToRad(M_deg);
 
-  // Convert semi-major axis to meters
-  const a_m = a * 1000; // meters
-
-  // Standard gravitational parameter μ = G * M
-  const mu = G * centralMass; // m^3 s^-2
-
-  // Compute mean motion n = sqrt(mu / a^3)
-  const n = Math.sqrt(mu / Math.pow(a_m, 3)); // rad/s
-
-  // Compute mean anomaly at epoch M0 = L0 - omega - w
-  let M0 = L0_rad - omega_rad - w_rad; // radians
-
-  // Normalize M0 between 0 and 2π
-  M0 = ((M0 % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-
-  // Compute mean anomaly at time t: M = M0 + n * delta_t
-  let M = M0 + n * deltaSecs; // radians
-
-  // Normalize M between 0 and 2π
-  M = ((M % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-
-  // Solve Kepler's Equation for Eccentric Anomaly E using Newton-Raphson method
-  let E = M;
-  const maxIter = 100;
-  const tolerance = 1e-8;
-  let iter = 0;
-  let deltaE = 1;
-
-  while (Math.abs(deltaE) > tolerance && iter < maxIter) {
-    deltaE = (M - (E - e * Math.sin(E))) / (1 - e * Math.cos(E));
-    E += deltaE;
-    iter++;
+  // Solve Kepler's Equation for Eccentric Anomaly using Newton-Raphson method
+  let E = M_rad;
+  for (let j = 0; j < 5; j++) {
+    E = E - (E - e * Math.sin(E) - M_rad) / (1 - e * Math.cos(E));
   }
 
-  // Compute true anomaly ν
-  const cos_E = Math.cos(E);
-  const sin_E = Math.sin(E);
-  const sqrt_1_minus_e2 = Math.sqrt(1 - e * e);
-  const sin_nu = (sqrt_1_minus_e2 * sin_E) / (1 - e * cos_E);
-  const cos_nu = (cos_E - e) / (1 - e * cos_E);
-  const nu = Math.atan2(sin_nu, cos_nu); // radians
+  // True anomaly
+  const nu =
+    2 *
+    Math.atan2(
+      Math.sqrt(1 + e) * Math.sin(E / 2),
+      Math.sqrt(1 - e) * Math.cos(E / 2),
+    );
+  // TODO should this be multiplied by tan(E/2) ?
 
-  // Compute distance r
-  const r = a_m * (1 - e * cos_E); // meters
+  // Distance from the central body (in km)
+  const r = a * (1 - e * Math.cos(E));
 
-  // Position in perifocal coordinate system
-  const x_pf = r * cos_nu;
-  const y_pf = r * sin_nu;
-  const z_pf = 0;
+  // Heliocentric coordinates in the orbital plane
+  const x_orb = r * Math.cos(nu);
+  const y_orb = r * Math.sin(nu);
 
-  // Compute specific angular momentum h
-  const h = Math.sqrt(mu * a_m * (1 - e * e));
+  // Convert to 3D coordinates
+  const cosOmega = Math.cos(degToRad(omega));
+  const sinOmega = Math.sin(degToRad(omega));
+  const cosI = Math.cos(degToRad(i));
+  const sinI = Math.sin(degToRad(i));
+  const cosW = Math.cos(degToRad(w));
+  const sinW = Math.sin(degToRad(w));
 
-  // Compute velocity in perifocal coordinate system
-  const v_pf_x = (mu / h) * (-sin_nu);
-  const v_pf_y = (mu / h) * (e + cos_nu);
-  const v_pf_z = 0;
+  // Transformation from orbital plane to ecliptic coordinates
+  const x =
+    x_orb * (cosOmega * cosW - sinOmega * sinW * cosI) -
+    y_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
+  const y =
+    x_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
+    y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
+  const z = x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
 
-  // Rotation matrices
-  const cos_omega = Math.cos(omega_rad);
-  const sin_omega = Math.sin(omega_rad);
-  const cos_i = Math.cos(i_rad);
-  const sin_i = Math.sin(i_rad);
-  const cos_w = Math.cos(w_rad);
-  const sin_w = Math.sin(w_rad);
+  // Calculate velocity TODO units? Why so small?
+  const meanMotion = Math.sqrt(G / Math.pow(a, 3));
+  let vx_orb = -meanMotion * a * Math.sin(E) / (1 - e * Math.cos(E));
+  let vy_orb = meanMotion * a * Math.sqrt(1 - Math.pow(e, 2)) / (1 - e * Math.cos(E));
 
-  // Rotation matrix from perifocal to ECI frame
-  const R = new THREE.Matrix3();
-  R.set(
-    cos_omega * cos_w - sin_omega * sin_w * cos_i, // R11
-    -cos_omega * sin_w - sin_omega * cos_w * cos_i, // R12
-    sin_omega * sin_i, // R13
+  // Transformation from orbital plane to ecliptic coordinates
+  const vx =
+    vx_orb * (cosOmega * cosW - sinOmega * sinW * cosI) -
+    vy_orb * (cosOmega * sinW + sinOmega * cosW * cosI);
+  const vy =
+    vx_orb * (sinOmega * cosW + cosOmega * sinW * cosI) -
+    vy_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
+  const vz = vx_orb * (sinW * sinI) + vy_orb * (cosW * sinI);
 
-    sin_omega * cos_w + cos_omega * sin_w * cos_i, // R21
-    -sin_omega * sin_w + cos_omega * cos_w * cos_i, // R22
-    -cos_omega * sin_i, // R23
-
-    sin_w * sin_i, // R31
-    cos_w * sin_i, // R32
-    cos_i // R33
-  );
-
-  // Position vector in ECI frame
-  const r_pf = new THREE.Vector3(x_pf, y_pf, z_pf);
-  const position = r_pf.applyMatrix3(R); // meters
-
-  // Velocity vector in ECI frame
-  const v_pf = new THREE.Vector3(v_pf_x, v_pf_y, v_pf_z);
-  const velocity = v_pf.applyMatrix3(R); // meters per second
-
+  // Note: Swapped order for correct orientation in Three.js
   return {
-    position: position,
-    velocity: velocity,
+    position: new THREE.Vector3(y, z, x),
+    velocity: new THREE.Vector3(vy, vz, vx),
   };
 }
 
 /**
  * Calculates the orbital elements from position and velocity vectors.
  *
- * @param {THREE.Vector3} relativePos - Position vector in meters.
- * @param {THREE.Vector3} relativeVel - Velocity vector in meters per second.
+ * @param {THREE.Vector3} relativePos - Position vector in km.
+ * @param {THREE.Vector3} relativeVel - Velocity vector in km/s.
  * @param {number} centralMass - Mass of the central body in kg.
  * @param {number} deltaDays - Time in days since epoch.
  * @returns {Object} - Orbital elements.
  */
 export function calculateElements(relativePos, relativeVel, centralMass, deltaDays = 0) {
-  const mu = G * centralMass;
-  const deltaSecs = deltaDays * 86400; // seconds since epoch
+  const mu = G * centralMass; // Gravitational parameter in m^3/s^2
 
-  const r_vec = relativePos.clone(); // meters
-  const v_vec = relativeVel.clone(); // m/s
-  const r = r_vec.length(); // meters
-  const v = v_vec.length(); // m/s
+  // Convert position and velocity to meters and m/s
+  const r_vec = relativePos.clone().multiplyScalar(1000); // km to m
+  const v_vec = relativeVel.clone().multiplyScalar(1000); // km/s to m/s
 
-  // Specific angular momentum vector
+  const r = r_vec.length();
+  const v = v_vec.length();
+
+  // Specific angular momentum (vector)
   const h_vec = new THREE.Vector3().crossVectors(r_vec, v_vec);
   const h = h_vec.length();
 
+  // Node vector
+  const n_vec = new THREE.Vector3(-h_vec.y, h_vec.x, 0);
+  const n = n_vec.length();
+
   // Eccentricity vector
-  const e_vec = v_vec
-    .clone()
-    .cross(h_vec)
-    .divideScalar(mu)
-    .sub(r_vec.clone().divideScalar(r));
+  const e_vec = v_vec.clone().cross(h_vec).divideScalar(mu).sub(r_vec.clone().divideScalar(r));
   const e = e_vec.length();
 
-  // Node vector
-  const k_vec = new THREE.Vector3(0, 0, 1);
-  const N_vec = new THREE.Vector3().crossVectors(k_vec, h_vec);
-  const N = N_vec.length();
-
-  // Semi-major axis
+  // Semi-major axis (a)
   const energy = (v * v) / 2 - mu / r;
-  const a = -mu / (2 * energy); // meters
+  const a = -mu / (2 * energy) / 1000; // Convert back to km
 
-  // Inclination
-  const i_rad = Math.acos(h_vec.z / h);
+  // Inclination (i)
+  const i_rad = Math.acos(clamp(h_vec.z / h, -1, 1));
+  const i_deg = radToDeg(i_rad);
 
-  // Longitude of ascending node
-  let omega_rad = Math.acos(N_vec.x / N);
-  if (N_vec.y < 0) {
-    omega_rad = 2 * Math.PI - omega_rad;
+  // Longitude of ascending node (omega)
+  let omega_rad;
+  if (n > 1e-8) {
+    omega_rad = Math.acos(clamp(n_vec.x / n, -1, 1));
+    if (n_vec.y < 0) {
+      omega_rad = 2 * Math.PI - omega_rad;
+    }
+  } else {
+    // Equatorial orbit
+    omega_rad = 0;
+  }
+  const omega_deg = radToDeg(omega_rad);
+
+  // Argument of periapsis (w)
+  let w_rad;
+  if (e > 1e-8 && n > 1e-8) {
+    w_rad = Math.acos(clamp(n_vec.dot(e_vec) / (n * e), -1, 1));
+    if (e_vec.z < 0) {
+      w_rad = 2 * Math.PI - w_rad;
+    }
+  } else {
+    // Circular orbit or equatorial orbit
+    w_rad = 0;
+  }
+  const w_deg = radToDeg(w_rad);
+
+  // True anomaly (nu)
+  let nu_rad;
+  if (e > 1e-8) {
+    nu_rad = Math.acos(clamp(e_vec.dot(r_vec) / (e * r), -1, 1));
+    if (r_vec.dot(v_vec) < 0) {
+      nu_rad = 2 * Math.PI - nu_rad;
+    }
+  } else {
+    // Circular orbit
+    nu_rad = Math.acos(clamp(r_vec.x / r, -1, 1));
+    if (r_vec.y < 0) {
+      nu_rad = 2 * Math.PI - nu_rad;
+    }
+  }
+  const nu_deg = radToDeg(nu_rad);
+
+  // Eccentric anomaly (E)
+  let E;
+  if (e < 1e-8) {
+    E = Math.atan2(r_vec.dot(v_vec) / Math.sqrt(mu * a * 1000), 1 - r / (a * 1000));
+  } else {
+    E = Math.atan2(Math.sqrt(1 - e * e) * Math.sin(nu_rad), e + Math.cos(nu_rad));
   }
 
-  // Argument of periapsis
-  let w_rad = Math.acos(N_vec.dot(e_vec) / (N * e));
-  if (e_vec.z < 0) {
-    w_rad = 2 * Math.PI - w_rad;
-  }
-
-  // True anomaly
-  let nu_rad = Math.acos(e_vec.dot(r_vec) / (e * r));
-  if (r_vec.dot(v_vec) < 0) {
-    nu_rad = 2 * Math.PI - nu_rad;
-  }
-
-  // Eccentric anomaly
-  const cos_E = (e + Math.cos(nu_rad)) / (1 + e * Math.cos(nu_rad));
-  const sin_E = (Math.sqrt(1 - e * e) * Math.sin(nu_rad)) / (1 + e * Math.cos(nu_rad));
-  const E = Math.atan2(sin_E, cos_E);
-
-  // Mean anomaly at time t
+  // Mean anomaly (M)
   const M = E - e * Math.sin(E);
 
-  // Mean motion
-  const n = Math.sqrt(mu / Math.pow(a, 3)); // rad/s
+  // Mean motion (rad/s)
+  const n_ang = Math.sqrt(mu / Math.pow(a * 1000, 3)); // a in km converted to meters
 
-  // Mean anomaly at epoch
-  const M0 = M - n * deltaSecs;
+  // Time in seconds since epoch
+  const deltaTime = deltaDays * 86400; // Convert days to seconds
 
-  // Mean longitude at epoch
-  const L0_rad = M0 + w_rad + omega_rad;
+  // Mean anomaly at epoch (M0)
+  let M0 = M - n_ang * deltaTime;
+  M0 = (M0 + 2 * Math.PI) % (2 * Math.PI); // Ensure M0 is between 0 and 2π
 
-  // Normalize angles
-  const normalizeAngle = (angle) => ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-
-  // Convert radians to degrees
-  const i_deg = radToDeg(normalizeAngle(i_rad));
-  const omega_deg = radToDeg(normalizeAngle(omega_rad));
-  const w_deg = radToDeg(normalizeAngle(w_rad));
-  const L0_deg = radToDeg(normalizeAngle(L0_rad));
+  // Mean longitude at epoch (L0)
+  const L0_rad = (M0 + omega_rad + w_rad) % (2 * Math.PI);
+  const L0_deg = radToDeg(L0_rad);
 
   // Orbital period
-  const period = (2 * Math.PI) / n / 86400; // days
+  const period = (2 * Math.PI) / n_ang / 86400; // In days
 
   return {
     e: e,
-    a: a / 1000, // km
-    i: i_deg, // degrees
-    omega: omega_deg, // degrees
-    w: w_deg, // degrees
-    L0: L0_deg, // degrees
-    period: period, // days
+    a: a,                   // km
+    i: i_deg,               // degrees
+    omega: omega_deg % 360, // degrees
+    w: w_deg % 360,         // degrees
+    L0: L0_deg % 360,       // degrees
+    period: period,         // days
   };
 }
 
@@ -227,10 +223,11 @@ export function testOrbitCalcs() {
   const earthElements = {
     e: 0.0167086,
     a: 149597870.7, // km
-    i: 0.00005, // degrees
+    i: 0.00005,     // degrees
     omega: -11.26064, // degrees
-    w: 102.94719, // degrees
-    L0: 100.46435, // degrees
+    w: 102.94719,     // degrees
+    L0: 100.46435,    // degrees
+    period: 365.256,  // days
   };
 
   const time = 180; // days since epoch
@@ -259,12 +256,9 @@ export function testOrbitCalcs() {
       error = "N/A";
     }
     console.log(
-      `${key}: initial=${initial}, computed=${computed.toFixed(
-        6
-      )}, error=${error.toFixed(6)}%`
+      `${key}: initial=${initial}, computed=${computed.toFixed(6)}, error=${error.toFixed(6)}%`
     );
   }
 }
 
-// Run the test function
 testOrbitCalcs();
