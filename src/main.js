@@ -263,7 +263,7 @@ let hotpaths = { "ISS": [] };
 
 // Initialize burn parameters
 let burnOccurred = false;
-const deltaV = new THREE.Vector3(0.001, 0.001, 0.001); // Adjust delta-v components as needed (in km/s)
+const deltaV = new THREE.Vector3(0.5, -1.0, -1.0); // Adjust delta-v components as needed (in km/s)
 const burnTime = 0.03; // The simulation time (in days) when the burn should occur
 
 // Function to update satellite stats
