@@ -155,14 +155,11 @@ function computePositions(celestialBodies) {
         simParams.simTime,
       );
       let position = pv.position;
-      let velocity = pv.velocity;
       if (body.name == "ISS") {
         // console.log(position, velocity);
       }
       position.divideScalar(AU_IN_KM); // Convert position to AU
-      // velocity.divideScalar(AU_IN_KM); // Convert velocity to AU
-      body.group.position.copy(position.add(velocity));
-      // body.group.position.copy(position)
+      body.group.position.copy(position)
     }
   });
 }
