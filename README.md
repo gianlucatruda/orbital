@@ -18,6 +18,7 @@ Tasks:
 - [x] Fix orbit path drawing for satellites
 - [x] Fix bug where animated object diverges from true orbit at higher speedup.
 - [x] Fix bug in satellite (child) orbital path tilt
+- [ ] Fix bug where craft "teleport" to new orbit after burn instead of conserving relative position.
 - [ ] WIP: `calculateOrbitAtTime` and `calculateElements` in engine (mostly correct) enables demo burn on ISS
 - [ ] WIP: Update engine to allow orbital maneuvers between spacecraft and celestial bodies
 - [ ] Fix bug where `Array.forEach` throws `RangeError: Array buffer allocation failed` (happened at delta t = `16103.61413`)
