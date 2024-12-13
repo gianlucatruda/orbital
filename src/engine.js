@@ -1,5 +1,5 @@
 import * as THREE from "three";
-const G = 6.67430e-11; // Gravitational constant in m^3 kg^-1 s^-2
+const G = 6.6743e-11; // Gravitational constant in m^3 kg^-1 s^-2
 
 import { degToRad, radToDeg } from "three/src/math/MathUtils";
 
@@ -20,12 +20,12 @@ function clamp(value, min, max) {
  */
 export function calculateOrbitAtTime(orbitalElements, deltaDays, centralMass) {
   const {
-    e,       // Eccentricity
-    a,       // Semi-major axis in km
-    i,       // Inclination in degrees
-    omega,   // Longitude of ascending node in degrees
-    w,       // Argument of periapsis in degrees
-    L0,      // Mean longitude at epoch in degrees
+    e, // Eccentricity
+    a, // Semi-major axis in km
+    i, // Inclination in degrees
+    omega, // Longitude of ascending node in degrees
+    w, // Argument of periapsis in degrees
+    L0, // Mean longitude at epoch in degrees
     period, // Orbital period in days
   } = orbitalElements;
 
@@ -73,7 +73,7 @@ export function calculateOrbitAtTime(orbitalElements, deltaDays, centralMass) {
   const z = x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
 
   // Calculate velocity in km/s
-  const mu = G * centralMass / 1e9; // Gravitational parameter in km^3/s^2
+  const mu = (G * centralMass) / 1e9; // Gravitational parameter in km^3/s^2
   const meanMotion = Math.sqrt(mu / Math.pow(a, 3));
   let vx_orb = -meanMotion * a * Math.sin(E);
   let vy_orb = meanMotion * a * Math.sqrt(1 - Math.pow(e, 2)) * Math.cos(E);
@@ -103,7 +103,12 @@ export function calculateOrbitAtTime(orbitalElements, deltaDays, centralMass) {
  * @param {number} deltaDays - Time in days since epoch.
  * @returns {Object} - Orbital elements.
  */
-export function calculateElements(relativePos, relativeVel, centralMass, deltaDays = 0) {
+export function calculateElements(
+  relativePos,
+  relativeVel,
+  centralMass,
+  deltaDays = 0,
+) {
   const mu = G * centralMass; // Gravitational parameter in m^3/s^2
 
   // Convert position and velocity to meters and m/s
@@ -126,7 +131,11 @@ export function calculateElements(relativePos, relativeVel, centralMass, deltaDa
   const n = n_vec.length();
 
   // Eccentricity vector
-  const e_vec = v_vec.clone().cross(h_vec).divideScalar(mu).sub(r_vec.clone().divideScalar(r));
+  const e_vec = v_vec
+    .clone()
+    .cross(h_vec)
+    .divideScalar(mu)
+    .sub(r_vec.clone().divideScalar(r));
   const e = e_vec.length();
 
   // Semi-major axis (a)
@@ -182,9 +191,15 @@ export function calculateElements(relativePos, relativeVel, centralMass, deltaDa
   // Eccentric anomaly (E)
   let E;
   if (e < 1e-8) {
-    E = Math.atan2(r_vec.dot(v_vec) / Math.sqrt(mu * a * 1000), 1 - r / (a * 1000));
+    E = Math.atan2(
+      r_vec.dot(v_vec) / Math.sqrt(mu * a * 1000),
+      1 - r / (a * 1000),
+    );
   } else {
-    E = Math.atan2(Math.sqrt(1 - e * e) * Math.sin(nu_rad), e + Math.cos(nu_rad));
+    E = Math.atan2(
+      Math.sqrt(1 - e * e) * Math.sin(nu_rad),
+      e + Math.cos(nu_rad),
+    );
   }
 
   // Mean anomaly (M)
@@ -209,12 +224,12 @@ export function calculateElements(relativePos, relativeVel, centralMass, deltaDa
 
   return {
     e: e,
-    a: a,                   // km
-    i: i_deg,               // degrees
+    a: a, // km
+    i: i_deg, // degrees
     omega: omega_deg % 360, // degrees
-    w: w_deg % 360,         // degrees
-    L0: L0_deg % 360,       // degrees
-    period: period,         // days
+    w: w_deg % 360, // degrees
+    L0: L0_deg % 360, // degrees
+    period: period, // days
   };
 }
 
@@ -228,28 +243,40 @@ export function testOrbitCalcs() {
   const issElements = {
     e: 0.000167,
     a: 6771, // km
-    i: 51.64,     // degrees
+    i: 51.64, // degrees
     omega: 0.1, // degrees
-    w: 0.1,     // degrees
-    L0: 0.1,    // degrees
-    period: 0.066,  // days
+    w: 0.1, // degrees
+    L0: 0.1, // degrees
+    period: 0.066, // days
   };
 
   const time = 180; // days since epoch
-  const { position, velocity } = calculateOrbitAtTime(issElements, time, earthMass);
-  const computedElements = calculateElements(position, velocity, earthMass, time);
+  const { position, velocity } = calculateOrbitAtTime(
+    issElements,
+    time,
+    earthMass,
+  );
+  const computedElements = calculateElements(
+    position,
+    velocity,
+    earthMass,
+    time,
+  );
 
   console.log("Initial Orbital Elements:");
   console.log(issElements);
   console.log("\nRe-computed Orbital Elements:");
   console.log(computedElements);
   console.log("\nComputed position, velocity");
-  console.log({position, velocity});
-  let pd = Math.sqrt(Math.pow(position.x, 2) + Math.pow(position.y, 2) + Math.pow(position.z, 2));
+  console.log({ position, velocity });
+  let pd = Math.sqrt(
+    Math.pow(position.x, 2) + Math.pow(position.y, 2) + Math.pow(position.z, 2),
+  );
   console.log("P abs. (km)", pd);
-  let vd = Math.sqrt(Math.pow(velocity.x, 2) + Math.pow(velocity.y, 2) + Math.pow(velocity.z, 2));
+  let vd = Math.sqrt(
+    Math.pow(velocity.x, 2) + Math.pow(velocity.y, 2) + Math.pow(velocity.z, 2),
+  );
   console.log("V abs. (km/s)", vd);
-
 
   console.log("\nComparison:");
   for (const key in issElements) {
@@ -268,7 +295,7 @@ export function testOrbitCalcs() {
       error = "N/A";
     }
     console.log(
-      `${key}: initial=${initial}, computed=${computed.toFixed(6)}, error=${error.toFixed(6)}%`
+      `${key}: initial=${initial}, computed=${computed.toFixed(6)}, error=${error.toFixed(6)}%`,
     );
   }
 }

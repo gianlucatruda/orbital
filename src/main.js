@@ -8,7 +8,7 @@ import { planetsData } from "./data";
 
 const SECONDS_PER_DAY = 86400;
 const AU_IN_KM = 149597871;
-const G = 6.67430e-11; // gravitational constant in m^3 kg^-1 s^-2
+const G = 6.6743e-11; // gravitational constant in m^3 kg^-1 s^-2
 
 let simParams = {
   timeAccel: 0.01, // days / sec
@@ -159,7 +159,7 @@ function computePositions(celestialBodies) {
         // console.log(position, velocity);
       }
       position.divideScalar(AU_IN_KM); // Convert position to AU
-      body.group.position.copy(position)
+      body.group.position.copy(position);
     }
   });
 }
@@ -259,7 +259,7 @@ window.addEventListener("resize", () => {
 });
 
 let clock = new THREE.Clock();
-let hotpaths = { "ISS": [] };
+let hotpaths = { ISS: [] };
 
 // Initialize burn parameters
 let burnOccurred = false;
@@ -288,7 +288,7 @@ function satStats(body, stats = {}) {
   let v_per = Math.sqrt(2 * (eps + (G * M) / r_per));
 
   // Current velocity (in m/s)
-  let v = Math.sqrt(2 * eps + ((2 * G * M) / r));
+  let v = Math.sqrt(2 * eps + (2 * G * M) / r);
 
   if (stats) {
     // TODO this sucks!
@@ -299,10 +299,10 @@ function satStats(body, stats = {}) {
     stats.v_per = v_per;
     stats.r_apo = r_apo;
     stats.v_apo = v_apo;
-    return stats
+    return stats;
   }
   stats = { r, v, eps, r_per, v_per, r_apo, v_apo };
-  return stats
+  return stats;
 
   // TODO these should become tests/asserts
   // console.log({ P, a });
@@ -314,11 +314,10 @@ function satStats(body, stats = {}) {
   // console.log(
   //   Math.sqrt((Math.pow(a, 3) * 4 * Math.pow(Math.PI, 2)) / (G * M)) - P
   // ); // should be 0
-
 }
 
 // Stats for the ISS (TODO generalise to any movable satellite)
-let iss = celestialBodies.find(body => body.name === "ISS");
+let iss = celestialBodies.find((body) => body.name === "ISS");
 let issStats = satStats(iss);
 const issStatsPane = dataPane.addFolder({
   title: "ISS",
@@ -364,11 +363,14 @@ function animate() {
         let ISSParams = calculateOrbitAtTime(
           body.data.orbitalElements,
           simParams.simTime,
-          body.parent.data.mass // Pass centralMass here
+          body.parent.data.mass, // Pass centralMass here
         );
-        console.log({ISSParams});
+        console.log({ ISSParams });
 
-        console.log("Time to burn! Old orbital elements:", body.data.orbitalElements);
+        console.log(
+          "Time to burn! Old orbital elements:",
+          body.data.orbitalElements,
+        );
 
         // Apply delta-v (burn)
         ISSParams.velocity.add(deltaV.clone());
@@ -378,7 +380,7 @@ function animate() {
           ISSParams.position,
           ISSParams.velocity,
           body.parent.data.mass, // Pass centralMass
-          simParams.simTime
+          simParams.simTime,
         );
 
         // Update the orbital elements
@@ -395,10 +397,12 @@ function animate() {
         hotpaths[body.name].push(orbitPath);
         body.parent.group.add(orbitPath);
 
-        console.log("Burn applied! New orbital elements:", body.data.orbitalElements);
+        console.log(
+          "Burn applied! New orbital elements:",
+          body.data.orbitalElements,
+        );
         console.log("ISS Position after burn (km):", ISSParams.position);
         console.log("ISS Velocity after burn (km/s):", ISSParams.velocity);
-
       }
     }
   });
@@ -418,9 +422,8 @@ function animate() {
         !simParams.rotateCam
       ) {
         // camera.position.set(target.x + eps, target.y + eps, target.z + eps);
-        camControls.maxDistance = selectedBody.data.diameter * 5.0 / AU_IN_KM;
-      }
-      else {
+        camControls.maxDistance = (selectedBody.data.diameter * 5.0) / AU_IN_KM;
+      } else {
         camControls.maxDistance = 100;
       }
     }

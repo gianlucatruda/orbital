@@ -1,6 +1,7 @@
 # ORBITAL
 
 Notes:
+
 - From chat with Fabs: next step is to implement inverse of `function calculateOrbitAtTime(orbitalElements, time)` to calculate the Keplerian parameters from relative position and relative velocity vectors.
 
 Tasks:
@@ -17,7 +18,7 @@ Tasks:
 - [x] Fix orbit path drawing for satellites
 - [x] Fix bug where animated object diverges from true orbit at higher speedup.
 - [x] Fix bug in satellite (child) orbital path tilt
-- [ ] WIP: `calculateOrbitAtTime` and `calculateElements` in engine (mostly correct) enables demo burn on ISS 
+- [ ] WIP: `calculateOrbitAtTime` and `calculateElements` in engine (mostly correct) enables demo burn on ISS
 - [ ] WIP: Update engine to allow orbital maneuvers between spacecraft and celestial bodies
 - [ ] Fix bug where `Array.forEach` throws `RangeError: Array buffer allocation failed` (happened at delta t = `16103.61413`)
 - [ ] Add some tests for the core physics (e.g. using orbital formulae to cross-check)
