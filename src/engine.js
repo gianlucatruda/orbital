@@ -107,8 +107,12 @@ export function calculateElements(relativePos, relativeVel, centralMass, deltaDa
   const mu = G * centralMass; // Gravitational parameter in m^3/s^2
 
   // Convert position and velocity to meters and m/s
-  const r_vec = relativePos.clone().multiplyScalar(1000); // km to m
-  const v_vec = relativeVel.clone().multiplyScalar(1000); // km/s to m/s
+  let r_vec = relativePos.clone().multiplyScalar(1000); // km to m
+  let v_vec = relativeVel.clone().multiplyScalar(1000); // km/s to m/s
+
+  // NB! Re-order THREE.js vector order to conventional ordering for calculations
+  r_vec = new THREE.Vector3(r_vec.z, r_vec.x, r_vec.y);
+  v_vec = new THREE.Vector3(v_vec.z, v_vec.x, v_vec.y);
 
   const r = r_vec.length();
   const v = v_vec.length();
@@ -225,9 +229,9 @@ export function testOrbitCalcs() {
     e: 0.000167,
     a: 6771, // km
     i: 51.64,     // degrees
-    omega: 0, // degrees
-    w: 0,     // degrees
-    L0: 0,    // degrees
+    omega: 0.1, // degrees
+    w: 0.1,     // degrees
+    L0: 0.1,    // degrees
     period: 0.066,  // days
   };
 
