@@ -69,3 +69,86 @@ export function calculateOrbitAtTime(orbitalElements, time) {
     velocity: new THREE.Vector3(vy, vz, vx),
   };
 }
+
+// Gravitational parameter (μ) = G * M (where M is the mass of the central body)
+// For the Sun, μ ≈ 1.32712440018e20 m^3 s^-2
+// For Earth, μ ≈ 3.986004418e14 m^3 s^-2
+const MU = 1.32712440018e20; // TODO Adjust this value based on your central body
+
+export function calculateElements(position, velocity) {
+  // Convert position and velocity to SI units (meters and meters per second) if they're not already
+  // Assuming position in meters and velocity in meters per second
+
+  // Calculate the specific angular momentum vector (h = r x v)
+  const h = new THREE.Vector3().crossVectors(position, velocity);
+
+  // Calculate the magnitude of the specific angular momentum
+  const hMag = h.length();
+
+  // Compute the node vector (N = k x h), where k is the unit vector along Z-axis
+  const k = new THREE.Vector3(0, 0, 1);
+  const N = new THREE.Vector3().crossVectors(k, h);
+
+  // Calculate the magnitude of the node vector
+  const nMag = N.length();
+
+  // Calculate the eccentricity vector (e = (v x h)/μ - r̂)
+  const rMag = position.length();
+  const vMag = velocity.length();
+
+  const rHat = position.clone().normalize();
+  const eVector = velocity
+    .clone()
+    .cross(h)
+    .divideScalar(MU)
+    .sub(rHat);
+
+  const e = eVector.length(); // Eccentricity
+
+  // Specific mechanical energy (ε)
+  const energy = (vMag ** 2) / 2 - MU / rMag;
+
+  // Semi-major axis (a)
+  const a = -MU / (2 * energy);
+
+  // Inclination (i)
+  const i = Math.acos(h.z / hMag);
+
+  // Longitude of ascending node (omega)
+  let omega = Math.acos(N.x / nMag);
+  if (N.y < 0) omega = 2 * Math.PI - omega;
+
+  // Argument of periapsis (w)
+  let w = Math.acos(N.dot(eVector) / (nMag * e));
+  if (eVector.z < 0) w = 2 * Math.PI - w;
+
+  // True anomaly (nu)
+  let nu = Math.acos(eVector.dot(rHat) / e);
+  if (position.dot(velocity) < 0) nu = 2 * Math.PI - nu;
+
+  // Mean anomaly (M)
+  const E = Math.atan2(
+    Math.sqrt(1 - e ** 2) * Math.sin(nu),
+    e + Math.cos(nu),
+  ); // Eccentric anomaly
+  const M = E - e * Math.sin(E);
+
+  // Orbital period (period)
+  const period = 2 * Math.PI * Math.sqrt(a ** 3 / MU);
+
+  // Mean longitude at epoch (L0)
+  const L0 = (omega + w + M) % (2 * Math.PI);
+
+  // Convert radians to degrees
+  const radToDeg = (rad) => THREE.MathUtils.radToDeg(rad);
+
+  return {
+    a: a, // Semi-major axis in meters
+    e: e, // Eccentricity
+    i: radToDeg(i), // Inclination in degrees
+    omega: radToDeg(omega), // Longitude of ascending node in degrees
+    w: radToDeg(w), // Argument of periapsis in degrees
+    L0: radToDeg(L0), // Mean longitude at epoch in degrees
+    period: period, // Orbital period in seconds
+  };
+}
