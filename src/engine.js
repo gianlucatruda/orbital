@@ -70,17 +70,13 @@ export function calculateOrbitAtTime(orbitalElements, time) {
   };
 }
 
-// Gravitational parameter (μ) = G * M (where M is the mass of the central body)
-// For the Sun, μ ≈ 1.32712440018e20 m^3 s^-2
-// For Earth, μ ≈ 3.986004418e14 m^3 s^-2
-const MU = 1.32712440018e20; // TODO Adjust this value based on your central body
+export function calculateElements(relativePos, relativeVel, parentMass) {
 
-export function calculateElements(position, velocity) {
-  // Convert position and velocity to SI units (meters and meters per second) if they're not already
-  // Assuming position in meters and velocity in meters per second
+  const MU = G * parentMass;
+  // Assume position in meters and velocity in meters per second
 
   // Calculate the specific angular momentum vector (h = r x v)
-  const h = new THREE.Vector3().crossVectors(position, velocity);
+  const h = new THREE.Vector3().crossVectors(relativePos, relativeVel);
 
   // Calculate the magnitude of the specific angular momentum
   const hMag = h.length();
@@ -93,11 +89,11 @@ export function calculateElements(position, velocity) {
   const nMag = N.length();
 
   // Calculate the eccentricity vector (e = (v x h)/μ - r̂)
-  const rMag = position.length();
-  const vMag = velocity.length();
+  const rMag = relativePos.length();
+  const vMag = relativeVel.length();
 
-  const rHat = position.clone().normalize();
-  const eVector = velocity
+  const rHat = relativePos.clone().normalize();
+  const eVector = relativeVel
     .clone()
     .cross(h)
     .divideScalar(MU)
@@ -124,7 +120,7 @@ export function calculateElements(position, velocity) {
 
   // True anomaly (nu)
   let nu = Math.acos(eVector.dot(rHat) / e);
-  if (position.dot(velocity) < 0) nu = 2 * Math.PI - nu;
+  if (relativePos.dot(relativeVel) < 0) nu = 2 * Math.PI - nu;
 
   // Mean anomaly (M)
   const E = Math.atan2(
@@ -134,21 +130,50 @@ export function calculateElements(position, velocity) {
   const M = E - e * Math.sin(E);
 
   // Orbital period (period)
-  const period = 2 * Math.PI * Math.sqrt(a ** 3 / MU);
+  const period = 2 * Math.PI * Math.sqrt(a ** 3 / MU) / (60 * 60 * 24);
 
   // Mean longitude at epoch (L0)
-  const L0 = (omega + w + M) % (2 * Math.PI);
+  const L0 = (omega + w + parentMass) % (2 * Math.PI);
 
   // Convert radians to degrees
   const radToDeg = (rad) => THREE.MathUtils.radToDeg(rad);
 
   return {
-    a: a, // Semi-major axis in meters
     e: e, // Eccentricity
+    a: a, // Semi-major axis in km
     i: radToDeg(i), // Inclination in degrees
     omega: radToDeg(omega), // Longitude of ascending node in degrees
     w: radToDeg(w), // Argument of periapsis in degrees
     L0: radToDeg(L0), // Mean longitude at epoch in degrees
-    period: period, // Orbital period in seconds
+    period: period, // Orbital period in days
   };
+}
+
+export function testOrbitCalcs() {
+
+  // Basic test logic: 
+  // calculateElements(calculateOrbitAtTime(elements, t)) == elements
+  // calculateOrbitAtTime(calculateElements(position, velocity), t) == position, velocity
+  const elements = {
+    e: 0.1,
+    a: 1,
+    i: 0.1,
+    omega: 0.1,
+    w: 0.1,
+    L0: 0.1,
+    period: 100,
+  };
+
+  const earthMass = 5.972e24;
+  const t = 0;
+  let {position, velocity} = calculateOrbitAtTime(elements, t);
+  const elements2 = calculateElements(position, velocity, earthMass);
+  console.log(elements2);
+
+  // const position2 = calculateOrbitAtTime(elements2, t);
+  // const velocity2 = calculateOrbitAtTime(elements2, t);
+  //
+  // console.log(position2);
+  // console.log(velocity2);
+
 }

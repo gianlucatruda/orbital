@@ -2,9 +2,11 @@ import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Pane } from "tweakpane";
-import { calculateElements, calculateOrbitAtTime } from "./engine";
+import { testOrbitCalcs, calculateElements, calculateOrbitAtTime } from "./engine";
 import { degToRad } from "three/src/math/MathUtils";
 import { planetsData } from "./data";
+
+testOrbitCalcs();
 
 const SECONDS_PER_DAY = 86400;
 const AU_IN_KM = 149597871;
