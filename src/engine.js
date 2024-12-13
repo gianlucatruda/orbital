@@ -72,10 +72,11 @@ export function calculateOrbitAtTime(orbitalElements, deltaDays, centralMass) {
     y_orb * (sinOmega * sinW - cosOmega * cosW * cosI);
   const z = x_orb * (sinW * sinI) + y_orb * (cosW * sinI);
 
-  // Calculate velocity TODO units? Why so small?
-  const meanMotion = Math.sqrt(G / Math.pow(a, 3));
-  let vx_orb = -meanMotion * a * Math.sin(E) / (1 - e * Math.cos(E));
-  let vy_orb = meanMotion * a * Math.sqrt(1 - Math.pow(e, 2)) / (1 - e * Math.cos(E));
+  // Calculate velocity in km/s
+  const mu = G * centralMass / 1e9; // Gravitational parameter in km^3/s^2
+  const meanMotion = Math.sqrt(mu / Math.pow(a, 3));
+  let vx_orb = -meanMotion * a * Math.sin(E);
+  let vy_orb = meanMotion * a * Math.sqrt(1 - Math.pow(e, 2)) * Math.cos(E);
 
   // Transformation from orbital plane to ecliptic coordinates
   const vx =
@@ -217,31 +218,38 @@ export function calculateElements(relativePos, relativeVel, centralMass, deltaDa
  * Tests the orbital calculations by comparing initial and computed orbital elements.
  */
 export function testOrbitCalcs() {
-  const sunMass = 1.98847e30; // kg
+  const earthMass = 5.97237e24; // kg
 
-  // Test with Earth's orbital elements
-  const earthElements = {
-    e: 0.0167086,
-    a: 149597870.7, // km
-    i: 0.00005,     // degrees
-    omega: -11.26064, // degrees
-    w: 102.94719,     // degrees
-    L0: 100.46435,    // degrees
-    period: 365.256,  // days
+  // Test with ISS's orbital elements
+  const issElements = {
+    e: 0.000167,
+    a: 6771, // km
+    i: 51.64,     // degrees
+    omega: 0, // degrees
+    w: 0,     // degrees
+    L0: 0,    // degrees
+    period: 0.066,  // days
   };
 
   const time = 180; // days since epoch
-  const { position, velocity } = calculateOrbitAtTime(earthElements, time, sunMass);
-  const computedElements = calculateElements(position, velocity, sunMass, time);
+  const { position, velocity } = calculateOrbitAtTime(issElements, time, earthMass);
+  const computedElements = calculateElements(position, velocity, earthMass, time);
 
   console.log("Initial Orbital Elements:");
-  console.log(earthElements);
-  console.log("\nComputed Orbital Elements:");
+  console.log(issElements);
+  console.log("\nRe-computed Orbital Elements:");
   console.log(computedElements);
+  console.log("\nComputed position, velocity");
+  console.log({position, velocity});
+  let pd = Math.sqrt(Math.pow(position.x, 2) + Math.pow(position.y, 2) + Math.pow(position.z, 2));
+  console.log("P abs. (km)", pd);
+  let vd = Math.sqrt(Math.pow(velocity.x, 2) + Math.pow(velocity.y, 2) + Math.pow(velocity.z, 2));
+  console.log("V abs. (km/s)", vd);
+
 
   console.log("\nComparison:");
-  for (const key in earthElements) {
-    const initial = earthElements[key];
+  for (const key in issElements) {
+    const initial = issElements[key];
     const computed = computedElements[key];
     let error;
     if (typeof initial === "number" && typeof computed === "number") {

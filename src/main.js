@@ -266,7 +266,7 @@ let hotpaths = { "ISS": [] };
 
 // Initialize burn parameters
 let burnOccurred = false;
-const deltaV = new THREE.Vector3(0.01, 0, 0); // Adjust delta-v components as needed (in km/s)
+const deltaV = new THREE.Vector3(0.001, 0.001, 0.001); // Adjust delta-v components as needed (in km/s)
 const burnTime = 0.03; // The simulation time (in days) when the burn should occur
 
 // Function to update satellite stats
@@ -369,19 +369,12 @@ function animate() {
           simParams.simTime,
           body.parent.data.mass // Pass centralMass here
         );
+        console.log({ISSParams});
 
         console.log("Time to burn! Old orbital elements:", body.data.orbitalElements);
 
-        // Convert position and velocity to SI units (meters and meters per second)
-        ISSParams.position.multiplyScalar(1000); // km to m
-        ISSParams.velocity.multiplyScalar(1000); // km/s to m/s
-
         // Apply delta-v (burn)
-        ISSParams.velocity.add(deltaV.clone().multiplyScalar(1000)); // km/s to m/s
-
-        // Convert back to km and km/s
-        ISSParams.position.multiplyScalar(1 / 1000); // m to km
-        ISSParams.velocity.multiplyScalar(1 / 1000); // m/s to km/s
+        ISSParams.velocity.add(deltaV.clone());
 
         // Recalculate orbital elements
         let ISSOrbElements = calculateElements(
