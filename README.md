@@ -1,9 +1,5 @@
 # ORBITAL
 
-Notes:
-
-- From chat with Fabs: next step is to implement inverse of `function calculateOrbitAtTime(orbitalElements, time)` to calculate the Keplerian parameters from relative position and relative velocity vectors.
-
 Tasks:
 
 - [x] Refactor to modular design: data/parameters, UI, and physics/logic.
