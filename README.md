@@ -1,21 +1,17 @@
 # ORBITAL
 
-Tasks:
+Orbital is an experimental simulator / game for orbital mechanics that runs in your browser.
 
-- [x] Refactor to modular design: data/parameters, UI, and physics/logic.
-- [x] Add a spacecraft 
-- [ ] Incorporate true planet and moon sizes and distances (with object scaling factor in Controls pane)
-- [ ] Add N-body physics to engine to allow orbital maneuvers between spacecraft and celestial bodies
-- [ ] Add a level/puzzle: with a given delta V and time budget, get from body A's orbit to body B's orbit
-- [x] Fix camera tracking of celestial bodies (particularly for moon)
-- [ ] Fix moon's weird orbital plane (due to Earth-relative axial tilt?)
-- [x] Fix UI scaling on small screens (especially mobile devices)
+I’m using it as a way to:
 
----
+1.  advance my computer graphics and front-end skills,
+2.  explore my interests in space travel and physics,
+3.  practise pair-programming with LLMs in a low-stakes setting
 
-Future Ideas:
+The project is currently written in JavaScript (with scatterings of Rust, GLSL, and WebAssembly).
 
-- [ ] Add a WebGL fragment shader to simulate stars as background
-- [ ] Simulate Earth's atmosphere (can I write shaders for that? e.g. Perlin noise?)
-- [ ] Migrate physics to a Rust engine -> WASM bind (see `rustify` branch)
-- [ ] Refactor build and deploy pipelines (Rust part + frontend part)
+It makes heavy use of the excellent [Three.js](https://github.com/mrdoob/three.js/) library, which gives convenient high-level APIs for browser-based graphics atop the cross-platform [WebGL](https://en.wikipedia.org/wiki/WebGL). That saves me having to implement low-level features from scratch, which I’ve already done in [my browser-based raytracer](https://gianluca.ai/raytracer/).
+
+Read the Development Log at [gianluca.ai/orbital-devlog](https://gianluca.ai/orbital-devlog/)
+
+![Orbital Cover image showing Moon](https://gianluca.ai/orbital-devlog/images/orbital-cover-01-moon.jpeg)
